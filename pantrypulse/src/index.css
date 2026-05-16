@@ -1,0 +1,25 @@
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Poppins", ui-sans-serif, system-ui, sans-serif;
+  --color-dark: #1F2027;
+  --color-card: #2C2D35;
+  --color-yellow: #FBB72C;
+  --color-green: #00855F;
+}
+
+body {
+  @apply bg-[#1F2027] text-white font-sans antialiased selection:bg-[#FBB72C] selection:text-black;
+  margin: 0;
+}
+
+/* Hide scrollbar for a cleaner mobile app look */
+::-webkit-scrollbar {
+    width: 0px;
+    background: transparent;
+}
+.scrollbar-hide {
+    -ms-overflow-style: none;  /* IE and Edge */
+    scrollbar-width: none;  /* Firefox */
+}
