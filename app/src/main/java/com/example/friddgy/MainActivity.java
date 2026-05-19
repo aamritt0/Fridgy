@@ -29,18 +29,23 @@ public class MainActivity extends AppCompatActivity {
             return insets;
         });
 
+        ThemeManager.ThemePreset theme = ThemeManager.getCurrentTheme(this);
+        int accentColor = Color.parseColor(theme.accentColor);
+
         TextView heroTitle = findViewById(R.id.hero_title);
         String fullText = "Healthy food\nis goooood";
         SpannableString spannableString = new SpannableString(fullText);
 
         int start = fullText.indexOf("goooood");
         int end = start + "goooood".length();
-        spannableString.setSpan(new ForegroundColorSpan(Color.parseColor("#FBB72C")), start, end, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+        spannableString.setSpan(new ForegroundColorSpan(accentColor), start, end, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
 
         heroTitle.setText(spannableString);
 
         Button btnGetStarted = findViewById(R.id.btn_get_started);
-        btnGetStarted.setOnClickListener(v -> {
+        btnGetStarted.setBackgroundTintList(android.content.res.ColorStateList.valueOf(accentColor));
+        
+        ThemeManager.applyTouchScaleAnimation(btnGetStarted, () -> {
             startActivity(new Intent(MainActivity.this, HomeActivity.class));
             finish();
         });

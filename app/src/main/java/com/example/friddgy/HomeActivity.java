@@ -43,6 +43,10 @@ import android.graphics.Typeface;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import android.content.res.ColorStateList;
+import android.graphics.Color;
+import android.graphics.drawable.GradientDrawable;
+import android.graphics.drawable.ColorDrawable;
 
 public class HomeActivity extends AppCompatActivity {
 
@@ -87,7 +91,7 @@ public class HomeActivity extends AppCompatActivity {
 
         ImageView ivProfile = findViewById(R.id.iv_profile);
         if (ivProfile != null) {
-            loadImage("https://i.pravatar.cc/150?img=47", ivProfile);
+            ThemeManager.applyTouchScaleAnimation(ivProfile, () -> showCustomizationDialog());
         }
 
         tabNew = findViewById(R.id.tab_new);
@@ -102,23 +106,26 @@ public class HomeActivity extends AppCompatActivity {
         if (tabSnacks != null) tabSnacks.setOnClickListener(v -> switchTab("Snacks"));
         if (tabFavorites != null) tabFavorites.setOnClickListener(v -> switchTab("Favorites"));
 
-        updateTabsUI();
-
         EditText etSearch = findViewById(R.id.et_search);
         TextView btnAddIngredient = findViewById(R.id.btn_add_ingredient);
 
-        btnAddIngredient.setOnClickListener(v -> {
-            String ingredient = etSearch.getText().toString().trim();
-            if (!ingredient.isEmpty() && !currentIngredients.contains(ingredient.toLowerCase())) {
-                currentIngredients.add(ingredient.toLowerCase());
-                etSearch.setText("");
-                updateIngredientsUI();
-            }
-        });
+        if (btnAddIngredient != null) {
+            ThemeManager.applyTouchScaleAnimation(btnAddIngredient, () -> {
+                String ingredient = etSearch.getText().toString().trim();
+                if (!ingredient.isEmpty() && !currentIngredients.contains(ingredient.toLowerCase())) {
+                    currentIngredients.add(ingredient.toLowerCase());
+                    etSearch.setText("");
+                    updateIngredientsUI();
+                }
+            });
+        }
 
-        btnGenerate.setOnClickListener(v -> generateRecipesFromGemini());
+        if (btnGenerate != null) {
+            ThemeManager.applyTouchScaleAnimation(btnGenerate, () -> generateRecipesFromGemini());
+        }
 
         loadDefaultRecipes();
+        applyCustomizations();
     }
 
     private void updateIngredientsUI() {
@@ -410,15 +417,23 @@ public class HomeActivity extends AppCompatActivity {
                 cardView.setLayoutParams(params);
             }
 
+            ThemeManager.ThemePreset theme = ThemeManager.getCurrentTheme(this);
+            int accentColor = Color.parseColor(theme.accentColor);
+
             TextView tvTitle = cardView.findViewById(R.id.item_title);
             TextView tvTime = cardView.findViewById(R.id.item_time);
             ImageView ivImage = cardView.findViewById(R.id.item_image);
             TextView tvRating = cardView.findViewById(R.id.item_rating);
+            ImageView ivStar = cardView.findViewById(R.id.item_star_icon);
 
             tvTitle.setText(recipe.getTitle());
             tvTime.setText(recipe.getTime());
             if (tvRating != null) {
                 tvRating.setText(String.valueOf(recipe.getRating()));
+                tvRating.setTextColor(accentColor);
+            }
+            if (ivStar != null) {
+                ivStar.setImageTintList(ColorStateList.valueOf(accentColor));
             }
 
             if (ivImage != null) {
@@ -434,7 +449,7 @@ public class HomeActivity extends AppCompatActivity {
             // Load image
             loadImage(recipe.getImageUrl(), ivImage);
 
-            cardView.setOnClickListener(v -> {
+            ThemeManager.applyTouchScaleAnimation(cardView, () -> {
                 Intent intent = new Intent(HomeActivity.this, DetailActivity.class);
                 intent.putExtra("RECIPE", recipe);
                 startActivity(intent);
@@ -466,12 +481,14 @@ public class HomeActivity extends AppCompatActivity {
         TextView[] tabs = {tabNew, tabPopular, tabBreakfast, tabSnacks, tabFavorites};
         String[] tabNames = {"New", "Popular", "Breakfast", "Snacks", "Favorites"};
 
+        int secondaryColor = Color.parseColor(ThemeManager.getCurrentTheme(this).secondaryColor);
+
         for (int i = 0; i < tabs.length; i++) {
             TextView tab = tabs[i];
             String name = tabNames[i];
             if (tab == null) continue;
             if (activeTab.equals(name)) {
-                tab.setTextColor(getResources().getColor(R.color.secondary_color, getTheme()));
+                tab.setTextColor(secondaryColor);
                 tab.setTypeface(null, Typeface.BOLD);
             } else {
                 tab.setTextColor(getResources().getColor(R.color.text_secondary, getTheme()));
@@ -740,5 +757,171 @@ public class HomeActivity extends AppCompatActivity {
             }
             throw new GeminiHttpException(responseCode, errorMsg);
         }
+    }
+
+    private void applyCustomizations() {
+        ThemeManager.ThemePreset theme = ThemeManager.getCurrentTheme(this);
+        int accentColor = Color.parseColor(theme.accentColor);
+        int secondaryColor = Color.parseColor(theme.secondaryColor);
+
+        // Update profile picture
+        ImageView ivProfile = findViewById(R.id.iv_profile);
+        if (ivProfile != null) {
+            loadImage(ThemeManager.getAvatarUrl(this), ivProfile);
+        }
+
+        // Update User Greeting Name
+        TextView tvHelloUser = findViewById(R.id.tv_hello_user);
+        if (tvHelloUser != null) {
+            tvHelloUser.setText("Hello, " + ThemeManager.getUserName(this) + " \uD83D\uDC4B");
+        }
+
+        // Update Add Ingredient button text color
+        TextView btnAddIngredient = findViewById(R.id.btn_add_ingredient);
+        if (btnAddIngredient != null) {
+            btnAddIngredient.setTextColor(accentColor);
+        }
+
+        // Update Generate Button background tint
+        if (btnGenerate != null) {
+            btnGenerate.setBackgroundTintList(ColorStateList.valueOf(accentColor));
+        }
+
+        // Update progress bar
+        if (progressBar != null) {
+            progressBar.setIndeterminateTintList(ColorStateList.valueOf(accentColor));
+        }
+
+        // Update tabs and recipes display
+        updateTabsUI();
+        updateRecipesUI();
+    }
+
+    private void showCustomizationDialog() {
+        android.app.AlertDialog.Builder builder = new android.app.AlertDialog.Builder(this);
+        View dialogView = getLayoutInflater().inflate(R.layout.dialog_customization, null);
+        builder.setView(dialogView);
+
+        final android.app.AlertDialog dialog = builder.create();
+        if (dialog.getWindow() != null) {
+            dialog.getWindow().setBackgroundDrawable(new android.graphics.drawable.ColorDrawable(Color.TRANSPARENT));
+        }
+
+        EditText etName = dialogView.findViewById(R.id.dialog_et_name);
+        etName.setText(ThemeManager.getUserName(this));
+
+        LinearLayout layoutThemes = dialogView.findViewById(R.id.dialog_layout_themes);
+        LinearLayout layoutAvatars = dialogView.findViewById(R.id.dialog_layout_avatars);
+
+        // Pre-fetch choices
+        final String[] selectedTheme = {ThemeManager.getCurrentTheme(this).name};
+        final String[] selectedAvatar = {ThemeManager.getAvatarUrl(this)};
+
+        // Populate Theme choices
+        layoutThemes.removeAllViews();
+        for (ThemeManager.ThemePreset preset : ThemeManager.PRESETS) {
+            View swatchView = new View(this);
+            int size = (int) (40 * getResources().getDisplayMetrics().density);
+            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(size, size);
+            lp.setMargins(16, 8, 16, 8);
+            swatchView.setLayoutParams(lp);
+
+            android.graphics.drawable.GradientDrawable gd = new android.graphics.drawable.GradientDrawable();
+            gd.setShape(android.graphics.drawable.GradientDrawable.OVAL);
+            gd.setColor(Color.parseColor(preset.accentColor));
+            
+            if (preset.name.equals(selectedTheme[0])) {
+                gd.setStroke(6, Color.WHITE);
+            } else {
+                gd.setStroke(2, Color.parseColor("#444444"));
+            }
+            swatchView.setBackground(gd);
+
+            swatchView.setOnClickListener(v -> {
+                selectedTheme[0] = preset.name;
+                for (int i = 0; i < layoutThemes.getChildCount(); i++) {
+                    View child = layoutThemes.getChildAt(i);
+                    ThemeManager.ThemePreset p = ThemeManager.PRESETS.get(i);
+                    android.graphics.drawable.GradientDrawable childGd = (android.graphics.drawable.GradientDrawable) child.getBackground();
+                    if (childGd != null) {
+                        if (p.name.equals(selectedTheme[0])) {
+                            childGd.setStroke(6, Color.WHITE);
+                        } else {
+                            childGd.setStroke(2, Color.parseColor("#444444"));
+                        }
+                    }
+                }
+            });
+
+            layoutThemes.addView(swatchView);
+        }
+
+        // Populate Avatar choices
+        layoutAvatars.removeAllViews();
+        for (String url : ThemeManager.AVATARS) {
+            ImageView avatarView = new ImageView(this);
+            int size = (int) (64 * getResources().getDisplayMetrics().density);
+            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(size, size);
+            lp.setMargins(12, 8, 12, 8);
+            avatarView.setLayoutParams(lp);
+            
+            avatarView.setBackgroundResource(R.drawable.circle_shape_border);
+            avatarView.setOutlineProvider(new android.view.ViewOutlineProvider() {
+                @Override
+                public void getOutline(View view, android.graphics.Outline outline) {
+                    outline.setOval(0, 0, view.getWidth(), view.getHeight());
+                }
+            });
+            avatarView.setClipToOutline(true);
+
+            if (url.equals(selectedAvatar[0])) {
+                avatarView.setAlpha(1.0f);
+                avatarView.setPadding(6, 6, 6, 6);
+            } else {
+                avatarView.setAlpha(0.6f);
+                avatarView.setPadding(0, 0, 0, 0);
+            }
+
+            loadImage(url, avatarView);
+
+            avatarView.setOnClickListener(v -> {
+                selectedAvatar[0] = url;
+                for (int i = 0; i < layoutAvatars.getChildCount(); i++) {
+                    ImageView child = (ImageView) layoutAvatars.getChildAt(i);
+                    String u = ThemeManager.AVATARS.get(i);
+                    if (u.equals(selectedAvatar[0])) {
+                        child.setAlpha(1.0f);
+                        child.setPadding(6, 6, 6, 6);
+                    } else {
+                        child.setAlpha(0.6f);
+                        child.setPadding(0, 0, 0, 0);
+                    }
+                }
+            });
+
+            layoutAvatars.addView(avatarView);
+        }
+
+        dialogView.findViewById(R.id.dialog_btn_cancel).setOnClickListener(v -> dialog.dismiss());
+        
+        Button btnApply = dialogView.findViewById(R.id.dialog_btn_apply);
+        ThemeManager.ThemePreset activeTheme = ThemeManager.getCurrentTheme(this);
+        btnApply.setBackgroundTintList(android.content.res.ColorStateList.valueOf(Color.parseColor(activeTheme.accentColor)));
+
+        btnApply.setOnClickListener(v -> {
+            String name = etName.getText().toString().trim();
+            if (!name.isEmpty()) {
+                ThemeManager.setUserName(HomeActivity.this, name);
+            }
+            ThemeManager.setCurrentTheme(HomeActivity.this, selectedTheme[0]);
+            ThemeManager.setAvatarUrl(HomeActivity.this, selectedAvatar[0]);
+
+            applyCustomizations();
+            dialog.dismiss();
+            
+            Toast.makeText(HomeActivity.this, "Customizations applied!", Toast.LENGTH_SHORT).show();
+        });
+
+        dialog.show();
     }
 }

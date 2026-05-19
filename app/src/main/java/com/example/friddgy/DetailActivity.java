@@ -1,5 +1,6 @@
 package com.example.friddgy;
 
+import android.content.res.ColorStateList;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.graphics.Color;
@@ -60,12 +61,12 @@ public class DetailActivity extends AppCompatActivity {
         isFavorite = prefs.contains(recipe.getId());
 
         ImageView btnBack = findViewById(R.id.btn_back);
-        btnBack.setOnClickListener(v -> finish());
+        ThemeManager.applyTouchScaleAnimation(btnBack, () -> finish());
 
         ImageView btnFavorite = findViewById(R.id.btn_favorite);
         updateFavoriteIcon(btnFavorite);
 
-        btnFavorite.setOnClickListener(v -> {
+        ThemeManager.applyTouchScaleAnimation(btnFavorite, () -> {
             isFavorite = !isFavorite;
             updateFavoriteIcon(btnFavorite);
             if (isFavorite) {
@@ -107,6 +108,23 @@ public class DetailActivity extends AppCompatActivity {
         tvTime.setText(recipe.getTime());
         tvDescription.setText(recipe.getDescription());
 
+        ThemeManager.ThemePreset theme = ThemeManager.getCurrentTheme(this);
+        int accentColor = Color.parseColor(theme.accentColor);
+        int secondaryColor = Color.parseColor(theme.secondaryColor);
+
+        // Dynamically style badge backgrounds
+        if (tvTimeBadge.getParent() instanceof View) {
+            ((View) tvTimeBadge.getParent()).setBackgroundTintList(ColorStateList.valueOf(secondaryColor));
+        }
+        if (tvRating.getParent() instanceof View) {
+            ((View) tvRating.getParent()).setBackgroundTintList(ColorStateList.valueOf(secondaryColor));
+        }
+
+        tvRating.setTextColor(accentColor);
+        tvProteins.setTextColor(accentColor);
+        tvFats.setTextColor(accentColor);
+        tvCarbs.setTextColor(accentColor);
+
         tvProteins.setText(recipe.getProteins() + " g");
         tvFats.setText(recipe.getFats() + " g");
         tvCarbs.setText(recipe.getCarbs() + " g");
@@ -135,14 +153,27 @@ public class DetailActivity extends AppCompatActivity {
             TextView tvStepText = itemView.findViewById(R.id.tv_step_text);
             tvStepNumber.setText(String.valueOf(i + 1));
             tvStepText.setText(recipe.getSteps().get(i));
+
+            // Dynamic Step styling
+            tvStepNumber.setTextColor(accentColor);
+            tvStepNumber.setBackgroundTintList(ColorStateList.valueOf(secondaryColor));
+
             containerInstructions.addView(itemView);
         }
 
         // Tips
         if (recipe.getTips() != null && !recipe.getTips().isEmpty()) {
-            findViewById(R.id.container_tip).setVisibility(View.VISIBLE);
+            View containerTip = findViewById(R.id.container_tip);
+            containerTip.setVisibility(View.VISIBLE);
             TextView tvTip = findViewById(R.id.tv_tip);
             tvTip.setText(recipe.getTips());
+
+            if (containerTip instanceof LinearLayout) {
+                LinearLayout llTip = (LinearLayout) containerTip;
+                if (llTip.getChildCount() > 0 && llTip.getChildAt(0) instanceof TextView) {
+                    ((TextView) llTip.getChildAt(0)).setTextColor(accentColor);
+                }
+            }
         }
     }
 
