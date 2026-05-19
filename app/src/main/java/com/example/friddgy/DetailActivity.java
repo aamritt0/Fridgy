@@ -69,7 +69,7 @@ public class DetailActivity extends AppCompatActivity {
             isFavorite = !isFavorite;
             updateFavoriteIcon(btnFavorite);
             if (isFavorite) {
-                prefs.edit().putString(recipe.getId(), recipe.getTitle()).apply(); // Simplified storage, ideally serialize full object or ID list
+                prefs.edit().putString(recipe.getId(), recipe.toJson()).apply();
             } else {
                 prefs.edit().remove(recipe.getId()).apply();
             }
@@ -80,10 +80,10 @@ public class DetailActivity extends AppCompatActivity {
 
     private void updateFavoriteIcon(ImageView btnFavorite) {
         if (isFavorite) {
-            btnFavorite.setImageResource(android.R.drawable.btn_star_big_on);
-            btnFavorite.setColorFilter(Color.parseColor("#ef4444")); // red_favorite
+            btnFavorite.setImageResource(R.drawable.ic_heart_filled);
+            btnFavorite.clearColorFilter();
         } else {
-            btnFavorite.setImageResource(android.R.drawable.btn_star_big_off);
+            btnFavorite.setImageResource(R.drawable.ic_heart_outline);
             btnFavorite.setColorFilter(Color.WHITE);
         }
     }

@@ -50,4 +50,81 @@ public class Recipe implements Serializable {
     public String getTips() { return tips; }
     public String getImageUrl() { return imageUrl; }
     public void setImageUrl(String imageUrl) { this.imageUrl = imageUrl; }
+
+    public String toJson() {
+        try {
+            org.json.JSONObject obj = new org.json.JSONObject();
+            obj.put("id", id);
+            obj.put("title", title);
+            obj.put("description", description);
+            obj.put("time", time);
+            obj.put("difficulty", difficulty);
+            obj.put("rating", rating);
+            obj.put("proteins", proteins);
+            obj.put("fats", fats);
+            obj.put("carbs", carbs);
+            obj.put("tips", tips);
+            obj.put("imageUrl", imageUrl);
+
+            org.json.JSONArray ingArr = new org.json.JSONArray();
+            for (Ingredient ing : ingredients) {
+                org.json.JSONObject ingObj = new org.json.JSONObject();
+                ingObj.put("name", ing.getName());
+                ingObj.put("amount", ing.getAmount());
+                ingObj.put("emoji", ing.getEmoji());
+                ingArr.put(ingObj);
+            }
+            obj.put("ingredients", ingArr);
+
+            org.json.JSONArray stepArr = new org.json.JSONArray();
+            for (String step : steps) {
+                stepArr.put(step);
+            }
+            obj.put("steps", stepArr);
+
+            return obj.toString();
+        } catch (Exception e) {
+            e.printStackTrace();
+            return "";
+        }
+    }
+
+    public static Recipe fromJson(String jsonStr) {
+        try {
+            org.json.JSONObject obj = new org.json.JSONObject(jsonStr);
+            String id = obj.getString("id");
+            String title = obj.getString("title");
+            String description = obj.getString("description");
+            String time = obj.getString("time");
+            String difficulty = obj.getString("difficulty");
+            double rating = obj.getDouble("rating");
+            double proteins = obj.getDouble("proteins");
+            double fats = obj.getDouble("fats");
+            double carbs = obj.getDouble("carbs");
+            String tips = obj.optString("tips", "");
+            String imageUrl = obj.getString("imageUrl");
+
+            List<Ingredient> ingredients = new java.util.ArrayList<>();
+            org.json.JSONArray ingArr = obj.getJSONArray("ingredients");
+            for (int i = 0; i < ingArr.length(); i++) {
+                org.json.JSONObject ingObj = ingArr.getJSONObject(i);
+                ingredients.add(new Ingredient(
+                        ingObj.getString("name"),
+                        ingObj.getString("amount"),
+                        ingObj.getString("emoji")
+                ));
+            }
+
+            List<String> steps = new java.util.ArrayList<>();
+            org.json.JSONArray stepArr = obj.getJSONArray("steps");
+            for (int i = 0; i < stepArr.length(); i++) {
+                steps.add(stepArr.getString(i));
+            }
+
+            return new Recipe(id, title, description, time, difficulty, rating, ingredients, proteins, fats, carbs, steps, tips, imageUrl);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
 }

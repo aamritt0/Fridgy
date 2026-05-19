@@ -46,8 +46,7 @@
                         android:layout_width="40dp"
                         android:layout_height="40dp"
                         android:padding="8dp"
-                        android:src="@android:drawable/ic_menu_revert"
-                        android:tint="@color/white" />
+                        android:src="@drawable/ic_back" />
 
                     <View
                         android:layout_width="0dp"
@@ -59,7 +58,7 @@
                         android:layout_width="40dp"
                         android:layout_height="40dp"
                         android:padding="8dp"
-                        android:src="@android:drawable/ic_menu_add" /> <!-- Will change src dynamically -->
+                        android:src="@drawable/ic_heart_outline" />
                 </LinearLayout>
 
                 <LinearLayout
