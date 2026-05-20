@@ -56,6 +56,7 @@ public class DetailActivity extends AppCompatActivity {
             finish();
             return;
         }
+        addToRecents(recipe);
 
         prefs = getSharedPreferences("favorites", Context.MODE_PRIVATE);
         isFavorite = prefs.contains(recipe.getId());
@@ -191,5 +192,35 @@ public class DetailActivity extends AppCompatActivity {
                 e.printStackTrace();
             }
         }).start();
+    }
+
+    private void addToRecents(Recipe recipe) {
+        SharedPreferences recentsPrefs = getSharedPreferences("recents", Context.MODE_PRIVATE);
+        String recentsStr = recentsPrefs.getString("list", "[]");
+        try {
+            JSONArray arr = new JSONArray(recentsStr);
+            for (int i = 0; i < arr.length(); i++) {
+                org.json.JSONObject obj = arr.getJSONObject(i);
+                if (obj.getString("id").equals(recipe.getId())) {
+                    arr.remove(i);
+                    break;
+                }
+            }
+            JSONArray newArr = new JSONArray();
+            newArr.put(new org.json.JSONObject(recipe.toJson()));
+            for (int i = 0; i < arr.length(); i++) {
+                newArr.put(arr.getJSONObject(i));
+            }
+            if (newArr.length() > 10) {
+                JSONArray limitedArr = new JSONArray();
+                for (int i = 0; i < 10; i++) {
+                    limitedArr.put(newArr.getJSONObject(i));
+                }
+                newArr = limitedArr;
+            }
+            recentsPrefs.edit().putString("list", newArr.toString()).apply();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 }

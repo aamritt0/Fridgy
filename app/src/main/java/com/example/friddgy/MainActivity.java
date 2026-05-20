@@ -42,6 +42,17 @@ public class MainActivity extends AppCompatActivity {
 
         heroTitle.setText(spannableString);
 
+        android.view.View heroContainer = findViewById(R.id.hero_image_container);
+        if (heroContainer != null) {
+            heroContainer.setOutlineProvider(new android.view.ViewOutlineProvider() {
+                @Override
+                public void getOutline(android.view.View view, android.graphics.Outline outline) {
+                    outline.setOval(0, 0, view.getWidth(), view.getHeight());
+                }
+            });
+            heroContainer.setClipToOutline(true);
+        }
+
         Button btnGetStarted = findViewById(R.id.btn_get_started);
         btnGetStarted.setBackgroundTintList(android.content.res.ColorStateList.valueOf(accentColor));
         

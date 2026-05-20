@@ -60,8 +60,9 @@ public class HomeActivity extends AppCompatActivity {
     private List<Recipe> generatedRecipes = new ArrayList<>();
     private Map<String, List<Recipe>> mealDbCache = new HashMap<>();
 
-    private TextView tabNew, tabPopular, tabBreakfast, tabSnacks, tabFavorites;
-    private String activeTab = "New";
+    private LinearLayout containerRecents, containerFavorites;
+    private View sectionRecents, sectionFavorites;
+    private String activeTab = "Breakfast";
 
     private LinearLayout linearIngredients;
     private View scrollIngredients;
@@ -94,17 +95,22 @@ public class HomeActivity extends AppCompatActivity {
             ThemeManager.applyTouchScaleAnimation(ivProfile, () -> showCustomizationDialog());
         }
 
-        tabNew = findViewById(R.id.tab_new);
-        tabPopular = findViewById(R.id.tab_popular);
-        tabBreakfast = findViewById(R.id.tab_breakfast);
-        tabSnacks = findViewById(R.id.tab_snacks);
-        tabFavorites = findViewById(R.id.tab_favorites);
+        containerRecents = findViewById(R.id.container_recents);
+        containerFavorites = findViewById(R.id.container_favorites);
+        sectionRecents = findViewById(R.id.section_recents);
+        sectionFavorites = findViewById(R.id.section_favorites);
 
-        if (tabNew != null) tabNew.setOnClickListener(v -> switchTab("New"));
-        if (tabPopular != null) tabPopular.setOnClickListener(v -> switchTab("Popular"));
-        if (tabBreakfast != null) tabBreakfast.setOnClickListener(v -> switchTab("Breakfast"));
-        if (tabSnacks != null) tabSnacks.setOnClickListener(v -> switchTab("Snacks"));
-        if (tabFavorites != null) tabFavorites.setOnClickListener(v -> switchTab("Favorites"));
+        View catBreakfast = findViewById(R.id.cat_breakfast);
+        View catLunch = findViewById(R.id.cat_lunch);
+        View catDinner = findViewById(R.id.cat_dinner);
+        View catDessert = findViewById(R.id.cat_dessert);
+        View catSalads = findViewById(R.id.cat_salads);
+
+        if (catBreakfast != null) catBreakfast.setOnClickListener(v -> switchTab("Breakfast"));
+        if (catLunch != null) catLunch.setOnClickListener(v -> switchTab("Lunch"));
+        if (catDinner != null) catDinner.setOnClickListener(v -> switchTab("Dinner"));
+        if (catDessert != null) catDessert.setOnClickListener(v -> switchTab("Dessert"));
+        if (catSalads != null) catSalads.setOnClickListener(v -> switchTab("Salads"));
 
         EditText etSearch = findViewById(R.id.et_search);
         TextView btnAddIngredient = findViewById(R.id.btn_add_ingredient);
@@ -126,6 +132,13 @@ public class HomeActivity extends AppCompatActivity {
 
         loadDefaultRecipes();
         applyCustomizations();
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        populateHorizontalSection(containerRecents, sectionRecents, loadRecents());
+        populateHorizontalSection(containerFavorites, sectionFavorites, loadFavorites());
     }
 
     private void updateIngredientsUI() {
@@ -360,14 +373,7 @@ public class HomeActivity extends AppCompatActivity {
     }
 
     private void loadDefaultRecipes() {
-        currentRecipes.clear();
-        currentRecipes.add(createMockRecipe("Ramen noodle soup"));
-        currentRecipes.add(createMockRecipe("Quesadilla"));
-        currentRecipes.add(createMockRecipe("Pilaf with seafood"));
-        currentRecipes.add(createMockRecipe("Tom Yam"));
-        generatedRecipes.clear();
-        generatedRecipes.addAll(currentRecipes);
-        updateRecipesUI();
+        switchTab("Breakfast");
     }
 
     private Recipe createMockRecipe(String title) {
@@ -382,13 +388,13 @@ public class HomeActivity extends AppCompatActivity {
                 3.45, 10.69, 22.72,
                 Arrays.asList("Boil water.", "Add noodles.", "Enjoy."),
                 "Add some extra soy sauce for flavor.",
-                "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80"
+                getFallbackImage(title)
         );
     }
 
     private void updateRecipesUI() {
         String label = activeTab.toLowerCase();
-        tvRecipeCount.setText(String.format("%02d %s\nrecipes", currentRecipes.size(), label));
+        tvRecipeCount.setText(String.format("%02d %s recipes", currentRecipes.size(), label));
         containerRecipes.removeAllViews();
 
         LayoutInflater inflater = LayoutInflater.from(this);
@@ -421,19 +427,31 @@ public class HomeActivity extends AppCompatActivity {
             int accentColor = Color.parseColor(theme.accentColor);
 
             TextView tvTitle = cardView.findViewById(R.id.item_title);
-            TextView tvTime = cardView.findViewById(R.id.item_time);
             ImageView ivImage = cardView.findViewById(R.id.item_image);
-            TextView tvRating = cardView.findViewById(R.id.item_rating);
-            ImageView ivStar = cardView.findViewById(R.id.item_star_icon);
 
             tvTitle.setText(recipe.getTitle());
-            tvTime.setText(recipe.getTime());
-            if (tvRating != null) {
-                tvRating.setText(String.valueOf(recipe.getRating()));
-                tvRating.setTextColor(accentColor);
-            }
-            if (ivStar != null) {
-                ivStar.setImageTintList(ColorStateList.valueOf(accentColor));
+
+            // Set the 5-star rating programmatically
+            ImageView star1 = cardView.findViewById(R.id.star1);
+            ImageView star2 = cardView.findViewById(R.id.star2);
+            ImageView star3 = cardView.findViewById(R.id.star3);
+            ImageView star4 = cardView.findViewById(R.id.star4);
+            ImageView star5 = cardView.findViewById(R.id.star5);
+
+            ImageView[] stars = {star1, star2, star3, star4, star5};
+            double rating = recipe.getRating();
+            int roundedRating = (int) Math.round(rating);
+
+            for (int j = 0; j < 5; j++) {
+                if (stars[j] != null) {
+                    if (j < roundedRating) {
+                        stars[j].setImageResource(android.R.drawable.star_on);
+                        stars[j].setImageTintList(ColorStateList.valueOf(accentColor));
+                    } else {
+                        stars[j].setImageResource(android.R.drawable.star_off);
+                        stars[j].setImageTintList(ColorStateList.valueOf(Color.parseColor("#4b4c53"))); // dark grey unselected
+                    }
+                }
             }
 
             if (ivImage != null) {
@@ -459,46 +477,23 @@ public class HomeActivity extends AppCompatActivity {
         }
     }
 
-    private void switchTab(String tabName) {
-        activeTab = tabName;
-        updateTabsUI();
-        if (tabName.equals("New")) {
-            currentRecipes.clear();
-            currentRecipes.addAll(generatedRecipes);
-            updateRecipesUI();
-        } else if (tabName.equals("Favorites")) {
-            loadFavorites();
-        } else if (tabName.equals("Popular")) {
-            loadMealDbRecipes("Seafood", "Popular");
-        } else if (tabName.equals("Breakfast")) {
+    private void switchTab(String categoryName) {
+        activeTab = categoryName;
+        if (categoryName.equals("Breakfast")) {
             loadMealDbRecipes("Breakfast", "Breakfast");
-        } else if (tabName.equals("Snacks")) {
-            loadMealDbRecipes("Starter", "Snacks");
+        } else if (categoryName.equals("Lunch")) {
+            loadMealDbRecipes("Chicken", "Lunch");
+        } else if (categoryName.equals("Dinner")) {
+            loadMealDbRecipes("Beef", "Dinner");
+        } else if (categoryName.equals("Dessert")) {
+            loadMealDbRecipes("Dessert", "Dessert");
+        } else if (categoryName.equals("Salads")) {
+            loadMealDbRecipes("Vegetarian", "Salads");
         }
     }
 
-    private void updateTabsUI() {
-        TextView[] tabs = {tabNew, tabPopular, tabBreakfast, tabSnacks, tabFavorites};
-        String[] tabNames = {"New", "Popular", "Breakfast", "Snacks", "Favorites"};
-
-        int secondaryColor = Color.parseColor(ThemeManager.getCurrentTheme(this).secondaryColor);
-
-        for (int i = 0; i < tabs.length; i++) {
-            TextView tab = tabs[i];
-            String name = tabNames[i];
-            if (tab == null) continue;
-            if (activeTab.equals(name)) {
-                tab.setTextColor(secondaryColor);
-                tab.setTypeface(null, Typeface.BOLD);
-            } else {
-                tab.setTextColor(getResources().getColor(R.color.text_secondary, getTheme()));
-                tab.setTypeface(null, Typeface.NORMAL);
-            }
-        }
-    }
-
-    private void loadFavorites() {
-        currentRecipes.clear();
+    private List<Recipe> loadFavorites() {
+        List<Recipe> list = new ArrayList<>();
         SharedPreferences prefs = getSharedPreferences("favorites", Context.MODE_PRIVATE);
         Map<String, ?> allEntries = prefs.getAll();
         for (Map.Entry<String, ?> entry : allEntries.entrySet()) {
@@ -506,13 +501,103 @@ public class HomeActivity extends AppCompatActivity {
             if (value.startsWith("{")) {
                 Recipe recipe = Recipe.fromJson(value);
                 if (recipe != null) {
-                    currentRecipes.add(recipe);
+                    list.add(recipe);
                 }
             } else {
-                currentRecipes.add(createMockRecipe(value));
+                list.add(createMockRecipe(value));
             }
         }
-        updateRecipesUI();
+        return list;
+    }
+
+    private List<Recipe> loadRecents() {
+        List<Recipe> list = new ArrayList<>();
+        SharedPreferences recentsPrefs = getSharedPreferences("recents", Context.MODE_PRIVATE);
+        String recentsStr = recentsPrefs.getString("list", "[]");
+        try {
+            JSONArray arr = new JSONArray(recentsStr);
+            for (int i = 0; i < arr.length(); i++) {
+                Recipe r = Recipe.fromJson(arr.getString(i));
+                if (r != null) {
+                    list.add(r);
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return list;
+    }
+
+    private void populateHorizontalSection(LinearLayout container, View sectionLayout, List<Recipe> recipes) {
+        container.removeAllViews();
+        if (recipes == null || recipes.isEmpty()) {
+            sectionLayout.setVisibility(View.GONE);
+            return;
+        }
+        sectionLayout.setVisibility(View.VISIBLE);
+        LayoutInflater inflater = LayoutInflater.from(this);
+        for (Recipe recipe : recipes) {
+            View cardView = inflater.inflate(R.layout.item_recipe_card, container, false);
+            
+            // Set custom layout params for horizontal scroll items
+            LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
+                (int) android.util.TypedValue.applyDimension(android.util.TypedValue.COMPLEX_UNIT_DIP, 150, getResources().getDisplayMetrics()),
+                android.view.ViewGroup.LayoutParams.WRAP_CONTENT
+            );
+            params.setMargins(
+                (int) android.util.TypedValue.applyDimension(android.util.TypedValue.COMPLEX_UNIT_DIP, 8, getResources().getDisplayMetrics()),
+                (int) android.util.TypedValue.applyDimension(android.util.TypedValue.COMPLEX_UNIT_DIP, 56, getResources().getDisplayMetrics()),
+                (int) android.util.TypedValue.applyDimension(android.util.TypedValue.COMPLEX_UNIT_DIP, 8, getResources().getDisplayMetrics()),
+                (int) android.util.TypedValue.applyDimension(android.util.TypedValue.COMPLEX_UNIT_DIP, 8, getResources().getDisplayMetrics())
+            );
+            cardView.setLayoutParams(params);
+
+            TextView tvTitle = cardView.findViewById(R.id.item_title);
+            ImageView ivImage = cardView.findViewById(R.id.item_image);
+            LinearLayout layoutRating = cardView.findViewById(R.id.layout_rating_stars);
+
+            tvTitle.setText(recipe.getTitle());
+
+            // Rating Stars
+            if (layoutRating != null) {
+                int rating = (int) Math.round(recipe.getRating());
+                ImageView[] stars = {
+                    cardView.findViewById(R.id.star1),
+                    cardView.findViewById(R.id.star2),
+                    cardView.findViewById(R.id.star3),
+                    cardView.findViewById(R.id.star4),
+                    cardView.findViewById(R.id.star5)
+                };
+                for (int j = 0; j < 5; j++) {
+                    if (stars[j] != null) {
+                        if (j < rating) {
+                            stars[j].setImageTintList(ColorStateList.valueOf(Color.parseColor("#ffcc00"))); // yellow gold
+                        } else {
+                            stars[j].setImageTintList(ColorStateList.valueOf(Color.parseColor("#4b4c53"))); // dark grey
+                        }
+                    }
+                }
+            }
+
+            if (ivImage != null) {
+                ivImage.setOutlineProvider(new android.view.ViewOutlineProvider() {
+                    @Override
+                    public void getOutline(android.view.View view, android.graphics.Outline outline) {
+                        outline.setOval(0, 0, view.getWidth(), view.getHeight());
+                    }
+                });
+                ivImage.setClipToOutline(true);
+                loadImage(recipe.getImageUrl(), ivImage);
+            }
+
+            ThemeManager.applyTouchScaleAnimation(cardView, () -> {
+                Intent intent = new Intent(HomeActivity.this, DetailActivity.class);
+                intent.putExtra("RECIPE", recipe);
+                startActivity(intent);
+            });
+
+            container.addView(cardView);
+        }
     }
 
     private void loadMealDbRecipes(String categoryName, String tabName) {
@@ -548,76 +633,98 @@ public class HomeActivity extends AppCompatActivity {
                             mealList.add(meals.getJSONObject(i));
                         }
                         Collections.shuffle(mealList);
-                        int count = Math.min(mealList.size(), 4);
+                        int count = Math.min(mealList.size(), 12);
+
+                        java.util.concurrent.ExecutorService executor = java.util.concurrent.Executors.newFixedThreadPool(4);
+                        java.util.concurrent.Future<Recipe>[] futures = new java.util.concurrent.Future[count];
 
                         for (int i = 0; i < count; i++) {
-                            JSONObject m = mealList.get(i);
-                            String idMeal = m.getString("idMeal");
+                            final JSONObject m = mealList.get(i);
+                            futures[i] = executor.submit(() -> {
+                                try {
+                                    String idMeal = m.getString("idMeal");
+                                    URL detailsUrl = new URL("https://www.themealdb.com/api/json/v1/1/lookup.php?i=" + idMeal);
+                                    HttpURLConnection detailsConn = (HttpURLConnection) detailsUrl.openConnection();
+                                    detailsConn.setRequestMethod("GET");
+                                    if (detailsConn.getResponseCode() == 200) {
+                                        BufferedReader dBr = new BufferedReader(new InputStreamReader(detailsConn.getInputStream(), "UTF-8"));
+                                        StringBuilder dSb = new StringBuilder();
+                                        String dLine;
+                                        while ((dLine = dBr.readLine()) != null) {
+                                            dSb.append(dLine);
+                                        }
+                                        dBr.close();
 
-                            URL detailsUrl = new URL("https://www.themealdb.com/api/json/v1/1/lookup.php?i=" + idMeal);
-                            HttpURLConnection detailsConn = (HttpURLConnection) detailsUrl.openConnection();
-                            detailsConn.setRequestMethod("GET");
-                            if (detailsConn.getResponseCode() == 200) {
-                                BufferedReader dBr = new BufferedReader(new InputStreamReader(detailsConn.getInputStream(), "UTF-8"));
-                                StringBuilder dSb = new StringBuilder();
-                                while ((line = dBr.readLine()) != null) {
-                                    dSb.append(line);
-                                }
-                                dBr.close();
+                                        JSONObject detailsRes = new JSONObject(dSb.toString());
+                                        if (detailsRes.has("meals") && !detailsRes.isNull("meals")) {
+                                            JSONObject details = detailsRes.getJSONArray("meals").getJSONObject(0);
 
-                                JSONObject detailsRes = new JSONObject(dSb.toString());
-                                if (detailsRes.has("meals") && !detailsRes.isNull("meals")) {
-                                    JSONObject details = detailsRes.getJSONArray("meals").getJSONObject(0);
-
-                                    List<Ingredient> ingredients = new ArrayList<>();
-                                    for (int k = 1; k <= 20; k++) {
-                                        if (details.has("strIngredient" + k) && !details.isNull("strIngredient" + k)) {
-                                            String name = details.getString("strIngredient" + k);
-                                            String amount = details.has("strMeasure" + k) && !details.isNull("strMeasure" + k)
-                                                    ? details.getString("strMeasure" + k)
-                                                    : "to taste";
-                                            if (!name.trim().isEmpty()) {
-                                                ingredients.add(new Ingredient(name, amount, "🥘"));
+                                            List<Ingredient> ingredients = new ArrayList<>();
+                                            for (int k = 1; k <= 20; k++) {
+                                                if (details.has("strIngredient" + k) && !details.isNull("strIngredient" + k)) {
+                                                    String name = details.getString("strIngredient" + k);
+                                                    String amount = details.has("strMeasure" + k) && !details.isNull("strMeasure" + k)
+                                                            ? details.getString("strMeasure" + k)
+                                                            : "to taste";
+                                                     if (!name.trim().isEmpty()) {
+                                                         ingredients.add(new Ingredient(name, amount, getIngredientEmoji(name)));
+                                                     }
+                                                }
                                             }
+
+                                            String instructionsText = details.optString("strInstructions", "");
+                                            List<String> steps = new ArrayList<>();
+                                            for (String step : instructionsText.split("\r\n")) {
+                                                if (!step.trim().isEmpty()) {
+                                                    steps.add(step.trim());
+                                                }
+                                            }
+                                            if (steps.isEmpty() && !instructionsText.isEmpty()) {
+                                                steps.add(instructionsText);
+                                            }
+
+                                            double proteins = Math.floor(Math.random() * 30) + 10;
+                                            double fats = Math.floor(Math.random() * 20) + 5;
+                                            double carbs = Math.floor(Math.random() * 50) + 15;
+                                            double rating = Math.round((Math.random() * (5.0 - 4.2) + 4.2) * 10.0) / 10.0;
+                                            String[] times = {"15 min", "25 min", "45 min", "1 hr"};
+                                            String time = times[(int) (Math.random() * 4)];
+                                            String[] diffs = {"Easy", "Medium", "Hard"};
+                                            String diff = diffs[(int) (Math.random() * 3)];
+
+                                            return new Recipe(
+                                                    idMeal,
+                                                    details.getString("strMeal"),
+                                                    "A delicious " + details.optString("strArea", "") + " " + details.optString("strCategory", "") + " dish.",
+                                                    time,
+                                                    diff,
+                                                    rating,
+                                                    ingredients,
+                                                    proteins, fats, carbs,
+                                                    steps,
+                                                    "Serve hot and enjoy!",
+                                                    details.getString("strMealThumb")
+                                            );
                                         }
                                     }
-
-                                    String instructionsText = details.optString("strInstructions", "");
-                                    List<String> steps = new ArrayList<>();
-                                    for (String step : instructionsText.split("\r\n")) {
-                                        if (!step.trim().isEmpty()) {
-                                            steps.add(step.trim());
-                                        }
-                                    }
-                                    if (steps.isEmpty() && !instructionsText.isEmpty()) {
-                                        steps.add(instructionsText);
-                                    }
-
-                                    double proteins = Math.floor(Math.random() * 30) + 10;
-                                    double fats = Math.floor(Math.random() * 20) + 5;
-                                    double carbs = Math.floor(Math.random() * 50) + 15;
-                                    double rating = Math.round((Math.random() * (5.0 - 4.2) + 4.2) * 10.0) / 10.0;
-                                    String[] times = {"15 min", "25 min", "45 min", "1 hr"};
-                                    String time = times[(int) (Math.random() * 4)];
-                                    String[] diffs = {"Easy", "Medium", "Hard"};
-                                    String diff = diffs[(int) (Math.random() * 3)];
-
-                                    fetchedRecipes.add(new Recipe(
-                                            idMeal,
-                                            details.getString("strMeal"),
-                                            "A delicious " + details.optString("strArea", "") + " " + details.optString("strCategory", "") + " dish.",
-                                            time,
-                                            diff,
-                                            rating,
-                                            ingredients,
-                                            proteins, fats, carbs,
-                                            steps,
-                                            "Serve hot and enjoy!",
-                                            details.getString("strMealThumb")
-                                    ));
+                                } catch (Exception e) {
+                                    e.printStackTrace();
                                 }
+                                return null;
+                            });
+                        }
+
+                        for (int i = 0; i < count; i++) {
+                            try {
+                                Recipe r = futures[i].get();
+                                if (r != null) {
+                                    fetchedRecipes.add(r);
+                                }
+                            } catch (Exception e) {
+                                e.printStackTrace();
                             }
                         }
+                        executor.shutdown();
                     }
                     mealDbCache.put(tabName, fetchedRecipes);
                     runOnUiThread(() -> {
@@ -640,6 +747,11 @@ public class HomeActivity extends AppCompatActivity {
     }
 
     private void loadImage(String urlStr, ImageView imageView) {
+        if (urlStr == null || urlStr.isEmpty()) {
+            imageView.setImageResource(android.R.drawable.ic_menu_gallery);
+            return;
+        }
+        runOnUiThread(() -> imageView.setImageResource(android.R.drawable.ic_menu_gallery)); // Set default placeholder
         new Thread(() -> {
             try {
                 URL url = new URL(urlStr);
@@ -648,11 +760,66 @@ public class HomeActivity extends AppCompatActivity {
                 connection.connect();
                 InputStream input = connection.getInputStream();
                 Bitmap bitmap = BitmapFactory.decodeStream(input);
-                runOnUiThread(() -> imageView.setImageBitmap(bitmap));
+                runOnUiThread(() -> {
+                    if (bitmap != null) {
+                        imageView.setImageBitmap(bitmap);
+                    } else {
+                        imageView.setImageResource(android.R.drawable.ic_menu_gallery);
+                    }
+                });
             } catch (Exception e) {
                 e.printStackTrace();
+                runOnUiThread(() -> imageView.setImageResource(android.R.drawable.ic_menu_gallery));
             }
         }).start();
+    }
+
+    private static String getIngredientEmoji(String name) {
+        if (name == null) return "🥘";
+        String lower = name.toLowerCase().trim();
+        if (lower.contains("chicken")) return "🍗";
+        if (lower.contains("beef") || lower.contains("meat") || lower.contains("steak")) return "🥩";
+        if (lower.contains("pork") || lower.contains("bacon") || lower.contains("ham")) return "🥓";
+        if (lower.contains("fish") || lower.contains("salmon") || lower.contains("tuna") || lower.contains("cod")) return "🐟";
+        if (lower.contains("shrimp") || lower.contains("prawn") || lower.contains("seafood")) return "🍤";
+        if (lower.contains("egg")) return "🥚";
+        if (lower.contains("milk") || lower.contains("cream") || lower.contains("yogurt")) return "🥛";
+        if (lower.contains("cheese")) return "🧀";
+        if (lower.contains("butter")) return "🧈";
+        if (lower.contains("tomato")) return "🍅";
+        if (lower.contains("potato")) return "🥔";
+        if (lower.contains("onion")) return "🧅";
+        if (lower.contains("garlic")) return "🧄";
+        if (lower.contains("carrot")) return "🥕";
+        if (lower.contains("lettuce") || lower.contains("cabbage") || lower.contains("spinach") || lower.contains("salad")) return "🥬";
+        if (lower.contains("chili") || lower.contains("pepper") || lower.contains("paprika")) return "🌶️";
+        if (lower.contains("lemon") || lower.contains("lime")) return "🍋";
+        if (lower.contains("orange")) return "🍊";
+        if (lower.contains("apple")) return "🍎";
+        if (lower.contains("banana")) return "🍌";
+        if (lower.contains("strawberry") || lower.contains("berry") || lower.contains("blueberry")) return "🍓";
+        if (lower.contains("grape")) return "🍇";
+        if (lower.contains("bread") || lower.contains("flour") || lower.contains("dough")) return "🍞";
+        if (lower.contains("rice")) return "🍚";
+        if (lower.contains("noodle") || lower.contains("pasta") || lower.contains("spaghetti")) return "🍝";
+        if (lower.contains("soup") || lower.contains("broth")) return "🥣";
+        if (lower.contains("salt") || lower.contains("sugar") || lower.contains("powder") || lower.contains("spice") || lower.contains("cinnamon")) return "🧂";
+        if (lower.contains("sauce") || lower.contains("vinegar") || lower.contains("mustard") || lower.contains("ketchup")) return "🥫";
+        if (lower.contains("oil")) return "🏺";
+        if (lower.contains("chocolate") || lower.contains("cocoa")) return "🍫";
+        if (lower.contains("honey")) return "🍯";
+        if (lower.contains("nut") || lower.contains("peanut") || lower.contains("almond") || lower.contains("walnut")) return "🥜";
+        if (lower.contains("mushroom")) return "🍄";
+        if (lower.contains("bean") || lower.contains("pea") || lower.contains("lentil")) return "🫘";
+        if (lower.contains("avocado")) return "🥑";
+        if (lower.contains("corn")) return "🌽";
+        if (lower.contains("herb") || lower.contains("parsley") || lower.contains("cilantro") || lower.contains("basil") || lower.contains("oregano") || lower.contains("thyme")) return "🌿";
+        if (lower.contains("ginger")) return "🫚";
+        if (lower.contains("wine") || lower.contains("beer") || lower.contains("alcohol")) return "🍷";
+
+        String[] fallbackEmojis = {"🥘", "🍳", "🥣", "🥗", "🍯", "🥫", "🧂", "🍽️"};
+        int index = Math.abs(lower.hashCode()) % fallbackEmojis.length;
+        return fallbackEmojis[index];
     }
 
     private static final String[] FOOD_IMAGE_IDS = {
@@ -792,8 +959,7 @@ public class HomeActivity extends AppCompatActivity {
             progressBar.setIndeterminateTintList(ColorStateList.valueOf(accentColor));
         }
 
-        // Update tabs and recipes display
-        updateTabsUI();
+        // Update recipes display
         updateRecipesUI();
     }
 
