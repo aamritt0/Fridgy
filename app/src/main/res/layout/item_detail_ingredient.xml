@@ -7,17 +7,17 @@
     android:orientation="vertical">
 
     <FrameLayout
-        android:layout_width="72dp"
-        android:layout_height="72dp"
+        android:layout_width="64dp"
+        android:layout_height="64dp"
         android:background="@drawable/circle_shape"
-        android:backgroundTint="@color/white">
+        android:backgroundTint="#35363D">
 
         <TextView
             android:id="@+id/tv_emoji"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_gravity="center"
-            android:textSize="32sp" />
+            android:textSize="28sp" />
     </FrameLayout>
 
     <TextView
@@ -29,4 +29,5 @@
         android:singleLine="true"
         android:textColor="@color/text_hint"
         android:textSize="12sp" />
+
 </LinearLayout>

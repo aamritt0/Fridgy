@@ -86,17 +86,9 @@ public class MainActivity extends AppCompatActivity {
 
         heroTitle.setText(spannableString);
 
-        // 3. Clip hero image to circle
+        // 3. The hero image is now full-screen (no circular clipping needed)
+        // hero_image_container is a zero-size placeholder kept for code compatibility
         View heroContainer = findViewById(R.id.hero_image_container);
-        if (heroContainer != null) {
-            heroContainer.setOutlineProvider(new android.view.ViewOutlineProvider() {
-                @Override
-                public void getOutline(View view, android.graphics.Outline outline) {
-                    outline.setOval(0, 0, view.getWidth(), view.getHeight());
-                }
-            });
-            heroContainer.setClipToOutline(true);
-        }
 
         // 4. Iniziamo Button setup and transition
         Button btnGetStarted = findViewById(R.id.btn_get_started);

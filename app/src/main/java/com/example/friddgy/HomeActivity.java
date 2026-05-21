@@ -63,6 +63,7 @@ public class HomeActivity extends AppCompatActivity {
     private LinearLayout containerRecents, containerFavorites;
     private View sectionRecents, sectionFavorites;
     private String activeTab = "Breakfast";
+    private View catBreakfastView, catLunchView, catDinnerView, catDessertView, catSaladsView;
 
     private LinearLayout linearIngredients;
     private View scrollIngredients;
@@ -83,6 +84,8 @@ public class HomeActivity extends AppCompatActivity {
     private Runnable loadingRunnable;
     // Guard: prevents updateRecipesUI from flickering content while loading screen is active
     private boolean isLoadingActive = false;
+    // Guard: true while the generated-recipes view is on screen; suppresses onResume re-populating recents
+    private boolean isGeneratedViewActive = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -113,17 +116,17 @@ public class HomeActivity extends AppCompatActivity {
         sectionRecents = findViewById(R.id.section_recents);
         sectionFavorites = findViewById(R.id.section_favorites);
 
-        View catBreakfast = findViewById(R.id.cat_breakfast);
-        View catLunch = findViewById(R.id.cat_lunch);
-        View catDinner = findViewById(R.id.cat_dinner);
-        View catDessert = findViewById(R.id.cat_dessert);
-        View catSalads = findViewById(R.id.cat_salads);
+        catBreakfastView = findViewById(R.id.cat_breakfast);
+        catLunchView = findViewById(R.id.cat_lunch);
+        catDinnerView = findViewById(R.id.cat_dinner);
+        catDessertView = findViewById(R.id.cat_dessert);
+        catSaladsView = findViewById(R.id.cat_salads);
 
-        if (catBreakfast != null) catBreakfast.setOnClickListener(v -> switchTab("Breakfast"));
-        if (catLunch != null) catLunch.setOnClickListener(v -> switchTab("Lunch"));
-        if (catDinner != null) catDinner.setOnClickListener(v -> switchTab("Dinner"));
-        if (catDessert != null) catDessert.setOnClickListener(v -> switchTab("Dessert"));
-        if (catSalads != null) catSalads.setOnClickListener(v -> switchTab("Salads"));
+        if (catBreakfastView != null) catBreakfastView.setOnClickListener(v -> switchTab("Breakfast"));
+        if (catLunchView != null) catLunchView.setOnClickListener(v -> switchTab("Lunch"));
+        if (catDinnerView != null) catDinnerView.setOnClickListener(v -> switchTab("Dinner"));
+        if (catDessertView != null) catDessertView.setOnClickListener(v -> switchTab("Dessert"));
+        if (catSaladsView != null) catSaladsView.setOnClickListener(v -> switchTab("Salads"));
 
         EditText etSearch = findViewById(R.id.et_search);
         TextView btnAddIngredient = findViewById(R.id.btn_add_ingredient);
@@ -170,8 +173,12 @@ public class HomeActivity extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
-        populateHorizontalSection(containerRecents, sectionRecents, loadRecents());
-        populateHorizontalSection(containerFavorites, sectionFavorites, loadFavorites());
+        // If the generated recipes view is active (user just swiped back from a recipe detail),
+        // do NOT repopulate recents/favorites — keep the generated results visible.
+        if (!isGeneratedViewActive) {
+            populateHorizontalSection(containerRecents, sectionRecents, loadRecents());
+            populateHorizontalSection(containerFavorites, sectionFavorites, loadFavorites());
+        }
     }
 
     private void updateIngredientsUI() {
@@ -510,6 +517,12 @@ public class HomeActivity extends AppCompatActivity {
             // Load image
             loadImage(recipe.getImageUrl(), ivImage);
 
+            // Set time badge
+            TextView tvTime = cardView.findViewById(R.id.item_time);
+            if (tvTime != null && recipe.getTime() != null && !recipe.getTime().isEmpty()) {
+                tvTime.setText(recipe.getTime());
+            }
+
             ThemeManager.applyTouchScaleAnimation(cardView, () -> {
                 Intent intent = new Intent(HomeActivity.this, DetailActivity.class);
                 intent.putExtra("RECIPE", recipe);
@@ -522,6 +535,8 @@ public class HomeActivity extends AppCompatActivity {
 
     private void switchTab(String categoryName) {
         activeTab = categoryName;
+        // Update visual selection on category icons
+        updateCategoryHighlight(categoryName);
         if (categoryName.equals("Breakfast")) {
             loadMealDbRecipes("Breakfast", "Breakfast");
         } else if (categoryName.equals("Lunch")) {
@@ -532,6 +547,31 @@ public class HomeActivity extends AppCompatActivity {
             loadMealDbRecipes("Dessert", "Dessert");
         } else if (categoryName.equals("Salads")) {
             loadMealDbRecipes("Vegetarian", "Salads");
+        }
+    }
+
+    private void updateCategoryHighlight(String activeCategory) {
+        ThemeManager.ThemePreset theme = ThemeManager.getCurrentTheme(this);
+        int accentColor = Color.parseColor(theme.accentColor);
+        int inactiveColor = Color.parseColor("#2C2D35"); // background_card
+
+        View[] catViews = {catBreakfastView, catLunchView, catDinnerView, catDessertView, catSaladsView};
+        String[] catNames = {"Breakfast", "Lunch", "Dinner", "Dessert", "Salads"};
+
+        for (int i = 0; i < catViews.length; i++) {
+            if (catViews[i] == null) continue;
+            // The first child of the LinearLayout is the FrameLayout (circle)
+            android.view.ViewGroup catContainer = (android.view.ViewGroup) catViews[i];
+            if (catContainer.getChildCount() > 0) {
+                android.view.View circle = catContainer.getChildAt(0);
+                boolean isActive = catNames[i].equals(activeCategory);
+                circle.setBackgroundTintList(ColorStateList.valueOf(isActive ? accentColor : inactiveColor));
+                // Update label color
+                if (catContainer.getChildCount() > 1 && catContainer.getChildAt(1) instanceof TextView) {
+                    TextView label = (TextView) catContainer.getChildAt(1);
+                    label.setTextColor(isActive ? accentColor : Color.parseColor("#a0a0ab"));
+                }
+            }
         }
     }
 
@@ -631,6 +671,12 @@ public class HomeActivity extends AppCompatActivity {
                 });
                 ivImage.setClipToOutline(true);
                 loadImage(recipe.getImageUrl(), ivImage);
+            }
+
+            // Set time badge
+            TextView tvTimeH = cardView.findViewById(R.id.item_time);
+            if (tvTimeH != null && recipe.getTime() != null && !recipe.getTime().isEmpty()) {
+                tvTimeH.setText(recipe.getTime());
             }
 
             ThemeManager.applyTouchScaleAnimation(cardView, () -> {
@@ -1311,15 +1357,16 @@ public class HomeActivity extends AppCompatActivity {
             loadingRunnable = null;
         }
 
+        // Hide only the home content (categories, recipes, recents) — keep header, search,
+        // ingredients pills, and generate button visible so the user can see their input.
         layoutHomeContent.setVisibility(View.GONE);
         layoutLoadingState.setVisibility(View.VISIBLE);
 
-        if (layoutHeaderBar != null) layoutHeaderBar.setVisibility(View.GONE);
-        if (layoutSearchBar != null) layoutSearchBar.setVisibility(View.GONE);
-
-        // Hide ingredients scroll and generate button to keep UI completely clean during loading
-        if (scrollIngredients != null) scrollIngredients.setVisibility(View.GONE);
-        if (btnGenerate != null) btnGenerate.setVisibility(View.GONE);
+        // Keep header bar and search bar visible during loading
+        if (layoutHeaderBar != null) layoutHeaderBar.setVisibility(View.VISIBLE);
+        if (layoutSearchBar != null) layoutSearchBar.setVisibility(View.VISIBLE);
+        // ingredients scroll and generate button are controlled by updateIngredientsUI()
+        // — do NOT hide them here; let the existing logic decide based on ingredient list.
 
             TextView tvEmoji = layoutLoadingState.findViewById(R.id.tv_loading_emoji);
             TextView tvTitle = layoutLoadingState.findViewById(R.id.tv_loading_title);
@@ -1463,12 +1510,9 @@ public class HomeActivity extends AppCompatActivity {
         if (layoutHomeContent != null) {
             layoutHomeContent.setVisibility(View.VISIBLE);
         }
-        if (layoutHeaderBar != null && layoutGeneratedHeader != null && layoutGeneratedHeader.getVisibility() != View.VISIBLE) {
-            layoutHeaderBar.setVisibility(View.VISIBLE);
-        }
-        if (layoutSearchBar != null && layoutGeneratedHeader != null && layoutGeneratedHeader.getVisibility() != View.VISIBLE) {
-            layoutSearchBar.setVisibility(View.VISIBLE);
-        }
+        // Header and search bar are always visible (we keep them during loading too)
+        if (layoutHeaderBar != null) layoutHeaderBar.setVisibility(View.VISIBLE);
+        if (layoutSearchBar != null) layoutSearchBar.setVisibility(View.VISIBLE);
         // Restore ingredients UI visibility dynamically
         updateIngredientsUI();
     }
@@ -1476,30 +1520,34 @@ public class HomeActivity extends AppCompatActivity {
     private void showGeneratedRecipesView(boolean show) {
         runOnUiThread(() -> {
             if (show) {
-                // Show only back button and generated recipe count, hide standard greeting, search bar, categories, recents, favorites, tv_recipe_count
-                if (layoutHeaderBar != null) layoutHeaderBar.setVisibility(View.GONE);
-                if (layoutSearchBar != null) layoutSearchBar.setVisibility(View.GONE);
+                isGeneratedViewActive = true;
+                // Keep header and search bar visible — user can still see who they are and search.
+                // Hide only the categories, recents, favorites, standard recipe count, and layout_home_content
+                // so that ONLY the generated recipes grid is displayed below the search area.
+                if (layoutHeaderBar != null) layoutHeaderBar.setVisibility(View.VISIBLE);
+                if (layoutSearchBar != null) layoutSearchBar.setVisibility(View.VISIBLE);
                 if (layoutCategories != null) layoutCategories.setVisibility(View.GONE);
                 if (sectionRecents != null) sectionRecents.setVisibility(View.GONE);
                 if (sectionFavorites != null) sectionFavorites.setVisibility(View.GONE);
                 if (tvRecipeCount != null) tvRecipeCount.setVisibility(View.GONE);
                 if (layoutGeneratedHeader != null) layoutGeneratedHeader.setVisibility(View.VISIBLE);
-                
+
                 if (tvGeneratedTitle != null) {
                     tvGeneratedTitle.setText(String.format("%d ricette generate", generatedRecipes.size()));
                 }
-                
+
                 currentRecipes.clear();
                 currentRecipes.addAll(generatedRecipes);
                 updateRecipesUI();
             } else {
+                isGeneratedViewActive = false;
                 // Restore standard views
                 if (layoutHeaderBar != null) layoutHeaderBar.setVisibility(View.VISIBLE);
                 if (layoutSearchBar != null) layoutSearchBar.setVisibility(View.VISIBLE);
                 if (layoutCategories != null) layoutCategories.setVisibility(View.VISIBLE);
                 if (layoutGeneratedHeader != null) layoutGeneratedHeader.setVisibility(View.GONE);
                 if (tvRecipeCount != null) tvRecipeCount.setVisibility(View.VISIBLE);
-                
+
                 // Refresh recent and favorites and normal tab recipes
                 populateHorizontalSection(containerRecents, sectionRecents, loadRecents());
                 populateHorizontalSection(containerFavorites, sectionFavorites, loadFavorites());

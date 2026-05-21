@@ -1,77 +1,120 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/card_root"
     android:layout_width="0dp"
     android:layout_height="wrap_content"
     android:layout_weight="1"
     android:layout_margin="8dp"
-    android:background="@drawable/card_bg"
-    android:orientation="vertical"
-    android:gravity="center_horizontal"
-    android:paddingStart="16dp"
-    android:paddingEnd="16dp"
-    android:paddingTop="0dp"
-    android:paddingBottom="16dp"
     android:clipChildren="false"
     android:clipToPadding="false">
 
-    <!-- Card layout needs to match the Figma. Image is half out. We will use FrameLayout or margin tricks -->
+    <!-- Main card body -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="48dp"
+        android:background="@drawable/card_bg"
+        android:orientation="vertical"
+        android:gravity="center_horizontal"
+        android:paddingStart="12dp"
+        android:paddingEnd="12dp"
+        android:paddingTop="68dp"
+        android:paddingBottom="16dp">
+
+        <TextView
+            android:id="@+id/item_title"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:minLines="2"
+            android:textColor="@color/white"
+            android:textSize="13sp"
+            android:textStyle="bold" />
+
+        <LinearLayout
+            android:id="@+id/layout_rating_stars"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+            <ImageView
+                android:id="@+id/star1"
+                android:layout_width="14dp"
+                android:layout_height="14dp"
+                android:layout_marginHorizontal="1dp"
+                android:src="@android:drawable/star_on" />
+            <ImageView
+                android:id="@+id/star2"
+                android:layout_width="14dp"
+                android:layout_height="14dp"
+                android:layout_marginHorizontal="1dp"
+                android:src="@android:drawable/star_on" />
+            <ImageView
+                android:id="@+id/star3"
+                android:layout_width="14dp"
+                android:layout_height="14dp"
+                android:layout_marginHorizontal="1dp"
+                android:src="@android:drawable/star_on" />
+            <ImageView
+                android:id="@+id/star4"
+                android:layout_width="14dp"
+                android:layout_height="14dp"
+                android:layout_marginHorizontal="1dp"
+                android:src="@android:drawable/star_on" />
+            <ImageView
+                android:id="@+id/star5"
+                android:layout_width="14dp"
+                android:layout_height="14dp"
+                android:layout_marginHorizontal="1dp"
+                android:src="@android:drawable/star_on" />
+        </LinearLayout>
+
+        <!-- Time badge row -->
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <ImageView
+                android:layout_width="12dp"
+                android:layout_height="12dp"
+                android:src="@android:drawable/ic_menu_recent_history"
+                android:tint="@color/text_secondary" />
+
+            <TextView
+                android:id="@+id/item_time"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="4dp"
+                android:text="15 min"
+                android:textColor="@color/text_secondary"
+                android:textSize="11sp" />
+        </LinearLayout>
+
+    </LinearLayout>
+
+    <!-- Circular food image floating above card -->
     <ImageView
         android:id="@+id/item_image"
         android:layout_width="112dp"
         android:layout_height="112dp"
-        android:layout_marginTop="-48dp"
+        android:layout_gravity="top|center_horizontal"
         android:background="@drawable/circle_shape_border"
         android:scaleType="centerCrop" />
 
+    <!-- Hot pepper badge on image -->
     <TextView
-        android:id="@+id/item_title"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="12dp"
-        android:gravity="center"
-        android:minLines="2"
-        android:textColor="@color/white"
-        android:textSize="14sp"
-        android:textStyle="bold" />
-
-    <LinearLayout
-        android:id="@+id/layout_rating_stars"
+        android:id="@+id/item_spicy_badge"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
-        android:layout_marginBottom="8dp"
-        android:gravity="center_vertical"
-        android:orientation="horizontal">
-        <ImageView 
-            android:id="@+id/star1"
-            android:layout_width="12dp" 
-            android:layout_height="12dp" 
-            android:layout_marginHorizontal="1dp"
-            android:src="@android:drawable/star_on" />
-        <ImageView 
-            android:id="@+id/star2"
-            android:layout_width="12dp" 
-            android:layout_height="12dp" 
-            android:layout_marginHorizontal="1dp"
-            android:src="@android:drawable/star_on" />
-        <ImageView 
-            android:id="@+id/star3"
-            android:layout_width="12dp" 
-            android:layout_height="12dp" 
-            android:layout_marginHorizontal="1dp"
-            android:src="@android:drawable/star_on" />
-        <ImageView 
-            android:id="@+id/star4"
-            android:layout_width="12dp" 
-            android:layout_height="12dp" 
-            android:layout_marginHorizontal="1dp"
-            android:src="@android:drawable/star_on" />
-        <ImageView 
-            android:id="@+id/star5"
-            android:layout_width="12dp" 
-            android:layout_height="12dp" 
-            android:layout_marginHorizontal="1dp"
-            android:src="@android:drawable/star_on" />
-    </LinearLayout>
-</LinearLayout>
+        android:layout_gravity="top|end"
+        android:layout_marginTop="52dp"
+        android:layout_marginEnd="4dp"
+        android:text="🌶️"
+        android:textSize="16sp"
+        android:visibility="gone" />
+
+</FrameLayout>

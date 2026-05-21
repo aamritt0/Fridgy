@@ -7,59 +7,45 @@
     android:background="@color/background_color">
 
     <!-- SPLASH SCREEN VIEW -->
-    <LinearLayout
+    <FrameLayout
         android:id="@+id/layout_splash"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:orientation="vertical">
+        android:layout_height="match_parent">
 
-        <!-- Top portion with centered circular image -->
-        <FrameLayout
+        <!-- Full-screen food image background -->
+        <ImageView
+            android:id="@+id/hero_image"
             android:layout_width="match_parent"
-            android:layout_height="0dp"
-            android:layout_weight="1.2"
-            android:clipChildren="false"
-            android:clipToPadding="false">
+            android:layout_height="match_parent"
+            android:src="@drawable/welcome_food"
+            android:scaleType="centerCrop" />
 
-            <FrameLayout
-                android:id="@+id/hero_image_container"
-                android:layout_width="280dp"
-                android:layout_height="280dp"
-                android:layout_gravity="center"
-                android:elevation="4dp"
-                android:background="@drawable/circle_shape">
+        <!-- Dark gradient overlay from bottom -->
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="@drawable/gradient_bottom" />
 
-                <ImageView
-                    android:id="@+id/hero_image"
-                    android:layout_width="match_parent"
-                    android:layout_height="match_parent"
-                    android:src="@drawable/welcome_food"
-                    android:scaleType="centerCrop" />
-
-                <View
-                    android:layout_width="match_parent"
-                    android:layout_height="match_parent"
-                    android:background="@drawable/gradient_bottom" />
-            </FrameLayout>
-        </FrameLayout>
-
-        <!-- Bottom portion with text and button -->
+        <!-- Content overlaid at bottom -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:layout_gravity="bottom"
             android:orientation="vertical"
             android:paddingHorizontal="32dp"
-            android:paddingBottom="48dp">
+            android:paddingBottom="56dp"
+            android:paddingTop="120dp">
 
             <TextView
                 android:id="@+id/hero_title"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="16dp"
-                android:text="Il cibo sano\nè buoooono"
+                android:text="Il cibo sano&#10;è buoooono"
                 android:textColor="@color/white"
-                android:textSize="36sp"
-                android:textStyle="bold" />
+                android:textSize="40sp"
+                android:textStyle="bold"
+                android:lineSpacingMultiplier="1.1" />
 
             <TextView
                 android:layout_width="match_parent"
@@ -67,8 +53,15 @@
                 android:layout_marginBottom="40dp"
                 android:text="Più di 10.000 ricette per ogni giorno e gusto"
                 android:textColor="@color/text_secondary"
-                android:textSize="18sp"
+                android:textSize="16sp"
                 android:lineSpacingMultiplier="1.2" />
+
+            <!-- Placeholder to maintain the FrameLayout reference -->
+            <FrameLayout
+                android:id="@+id/hero_image_container"
+                android:layout_width="0dp"
+                android:layout_height="0dp"
+                android:visibility="gone" />
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btn_get_started"
@@ -83,7 +76,7 @@
                 android:textSize="18sp"
                 android:textStyle="bold" />
         </LinearLayout>
-    </LinearLayout>
+    </FrameLayout>
 
     <!-- PROFILE SETUP VIEW (hidden initially) -->
     <LinearLayout
