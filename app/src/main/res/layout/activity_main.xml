@@ -1,81 +1,208 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:id="@+id/main"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/background_color"
-    android:orientation="vertical">
+    android:background="@color/background_color">
 
-    <!-- Top portion with centered circular image -->
-    <FrameLayout
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1.2"
-        android:clipChildren="false"
-        android:clipToPadding="false">
-
-        <FrameLayout
-            android:id="@+id/hero_image_container"
-            android:layout_width="280dp"
-            android:layout_height="280dp"
-            android:layout_gravity="center"
-            android:elevation="4dp"
-            android:background="@drawable/circle_shape">
-
-            <ImageView
-                android:id="@+id/hero_image"
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:src="@drawable/welcome_food"
-                android:scaleType="centerCrop" />
-
-            <View
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:background="@drawable/gradient_bottom" />
-        </FrameLayout>
-    </FrameLayout>
-
-    <!-- Bottom portion with text and button -->
+    <!-- SPLASH SCREEN VIEW -->
     <LinearLayout
+        android:id="@+id/layout_splash"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:paddingHorizontal="32dp"
-        android:paddingBottom="48dp">
+        android:layout_height="match_parent"
+        android:orientation="vertical">
 
-        <TextView
-            android:id="@+id/hero_title"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="16dp"
-            android:text="Healthy food\nis goooood"
-            android:textColor="@color/white"
-            android:textSize="36sp"
-            android:textStyle="bold" />
+        <!-- Top portion with centered circular image -->
+        <FrameLayout
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1.2"
+            android:clipChildren="false"
+            android:clipToPadding="false">
 
-        <TextView
+            <FrameLayout
+                android:id="@+id/hero_image_container"
+                android:layout_width="280dp"
+                android:layout_height="280dp"
+                android:layout_gravity="center"
+                android:elevation="4dp"
+                android:background="@drawable/circle_shape">
+
+                <ImageView
+                    android:id="@+id/hero_image"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:src="@drawable/welcome_food"
+                    android:scaleType="centerCrop" />
+
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:background="@drawable/gradient_bottom" />
+            </FrameLayout>
+        </FrameLayout>
+
+        <!-- Bottom portion with text and button -->
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="40dp"
-            android:text="More than 10,000 recipes for every day and taste"
-            android:textColor="@color/text_secondary"
-            android:textSize="18sp"
-            android:lineSpacingMultiplier="1.2" />
+            android:orientation="vertical"
+            android:paddingHorizontal="32dp"
+            android:paddingBottom="48dp">
 
+            <TextView
+                android:id="@+id/hero_title"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="16dp"
+                android:text="Il cibo sano\nè buoooono"
+                android:textColor="@color/white"
+                android:textSize="36sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="40dp"
+                android:text="Più di 10.000 ricette per ogni giorno e gusto"
+                android:textColor="@color/text_secondary"
+                android:textSize="18sp"
+                android:lineSpacingMultiplier="1.2" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_get_started"
+                android:layout_width="match_parent"
+                android:layout_height="64dp"
+                android:backgroundTint="@color/accent_color"
+                app:cornerRadius="32dp"
+                android:stateListAnimator="@null"
+                android:text="Iniziamo"
+                android:textAllCaps="false"
+                android:textColor="@color/background_color"
+                android:textSize="18sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <!-- PROFILE SETUP VIEW (hidden initially) -->
+    <LinearLayout
+        android:id="@+id/layout_profile_setup"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:visibility="gone"
+        android:padding="32dp"
+        android:gravity="center">
+
+        <!-- Title -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Configura il tuo Profilo"
+            android:textColor="@color/white"
+            android:textSize="28sp"
+            android:textStyle="bold"
+            android:gravity="center"
+            android:layout_marginBottom="8dp" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Dicci come ti chiami e scegli una foto!"
+            android:textColor="@color/text_secondary"
+            android:textSize="15sp"
+            android:gravity="center"
+            android:layout_marginBottom="40dp" />
+
+        <!-- Circular Image Selector -->
+        <FrameLayout
+            android:id="@+id/btn_pick_image"
+            android:layout_width="140dp"
+            android:layout_height="140dp"
+            android:layout_marginBottom="32dp"
+            android:clickable="true"
+            android:focusable="true">
+
+            <!-- Profile image container with outline crop -->
+            <FrameLayout
+                android:id="@+id/setup_profile_image_container"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:padding="4dp">
+
+                <ImageView
+                    android:id="@+id/setup_iv_profile"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:scaleType="centerInside"
+                    android:src="@android:drawable/ic_menu_camera"
+                    android:tint="@color/text_secondary" />
+            </FrameLayout>
+
+            <!-- Small edit badge at bottom right -->
+            <FrameLayout
+                android:layout_width="36dp"
+                android:layout_height="36dp"
+                android:layout_gravity="bottom|end"
+                android:background="@drawable/circle_shape"
+                android:backgroundTint="@color/accent_color"
+                android:elevation="2dp">
+
+                <ImageView
+                    android:layout_width="20dp"
+                    android:layout_height="20dp"
+                    android:layout_gravity="center"
+                    android:src="@android:drawable/ic_menu_edit"
+                    android:tint="@color/background_color" />
+            </FrameLayout>
+        </FrameLayout>
+
+        <!-- Username Input -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="56dp"
+            android:background="@drawable/search_bg"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingHorizontal="16dp"
+            android:layout_marginBottom="40dp">
+
+            <ImageView
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:src="@android:drawable/ic_menu_myplaces"
+                android:tint="@color/text_secondary" />
+
+            <EditText
+                android:id="@+id/setup_et_name"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:background="@null"
+                android:hint="Il tuo nome..."
+                android:paddingHorizontal="12dp"
+                android:singleLine="true"
+                android:textColor="@color/white"
+                android:textColorHint="@color/text_secondary"
+                android:inputType="textPersonName|textCapSentences"
+                android:textSize="16sp" />
+        </LinearLayout>
+
+        <!-- Submit Button -->
         <com.google.android.material.button.MaterialButton
-            android:id="@+id/btn_get_started"
+            android:id="@+id/btn_confirm_setup"
             android:layout_width="match_parent"
             android:layout_height="64dp"
             android:backgroundTint="@color/accent_color"
             app:cornerRadius="32dp"
             android:stateListAnimator="@null"
-            android:text="Let's get started"
+            android:text="Inizia l'avventura!"
             android:textAllCaps="false"
             android:textColor="@color/background_color"
             android:textSize="18sp"
             android:textStyle="bold" />
-    </LinearLayout>
-</LinearLayout>
 
+    </LinearLayout>
+
+</FrameLayout>

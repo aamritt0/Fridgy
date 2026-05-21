@@ -105,7 +105,17 @@ public class DetailActivity extends AppCompatActivity {
         tvTimeBadge.setText(recipe.getTime());
         tvTitle.setText(recipe.getTitle());
         tvRating.setText(String.valueOf(recipe.getRating()));
-        tvDifficulty.setText(recipe.getDifficulty());
+        
+        String difficulty = recipe.getDifficulty();
+        if ("Easy".equalsIgnoreCase(difficulty)) {
+            difficulty = "Facile";
+        } else if ("Medium".equalsIgnoreCase(difficulty)) {
+            difficulty = "Medio";
+        } else if ("Hard".equalsIgnoreCase(difficulty)) {
+            difficulty = "Difficile";
+        }
+        tvDifficulty.setText(difficulty);
+
         tvTime.setText(recipe.getTime());
         tvDescription.setText(recipe.getDescription());
 

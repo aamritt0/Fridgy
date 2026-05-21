@@ -23,6 +23,7 @@
             android:clipToPadding="false">
 
             <LinearLayout
+                android:id="@+id/layout_header_bar"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:gravity="center_vertical"
@@ -38,7 +39,7 @@
                         android:id="@+id/tv_hello_user"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Hello, Kristin \uD83D\uDC4B"
+                        android:text="Ciao, Kristin \uD83D\uDC4B"
                         android:textColor="@color/white"
                         android:textSize="20sp"
                         android:textStyle="bold" />
@@ -46,7 +47,7 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="What you want to cook today?"
+                        android:text="Cosa vuoi cucinare oggi?"
                         android:textColor="@color/text_secondary"
                         android:textSize="14sp" />
                 </LinearLayout>
@@ -60,6 +61,7 @@
             </LinearLayout>
 
             <LinearLayout
+                android:id="@+id/layout_search_bar"
                 android:layout_width="match_parent"
                 android:layout_height="56dp"
                 android:layout_marginTop="24dp"
@@ -80,7 +82,7 @@
                     android:layout_height="match_parent"
                     android:layout_weight="1"
                     android:background="@null"
-                    android:hint="Find your favorite recipe..."
+                    android:hint="Trova la tua ricetta preferita..."
                     android:paddingHorizontal="8dp"
                     android:singleLine="true"
                     android:textColor="@color/white"
@@ -91,7 +93,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:padding="8dp"
-                    android:text="Add"
+                    android:text="Aggiungi"
                     android:textColor="@color/accent_color"
                     android:textStyle="bold" />
             </LinearLayout>
@@ -118,7 +120,7 @@
                 android:layout_height="56dp"
                 android:layout_marginTop="16dp"
                 android:backgroundTint="@color/accent_color"
-                android:text="Generate New Recipes"
+                android:text="Genera Nuove Ricette"
                 android:textColor="@color/background_color"
                 android:textStyle="bold"
                 android:visibility="gone" />
@@ -132,12 +134,22 @@
                 android:indeterminateTint="@color/accent_color"
                 android:visibility="gone" />
 
-            <!-- Category Section -->
+            <!-- Main Content Container (to be hidden during loading) -->
             <LinearLayout
+                android:id="@+id/layout_home_content"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="32dp"
-                android:orientation="vertical">
+                android:orientation="vertical"
+                android:clipChildren="false"
+                android:clipToPadding="false">
+
+                <!-- Category Section -->
+                <LinearLayout
+                    android:id="@+id/layout_categories"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="32dp"
+                    android:orientation="vertical">
 
                 <RelativeLayout
                     android:layout_width="match_parent"
@@ -149,7 +161,7 @@
                         android:layout_height="wrap_content"
                         android:layout_alignParentStart="true"
                         android:layout_centerVertical="true"
-                        android:text="Category"
+                        android:text="Categorie"
                         android:textColor="@color/white"
                         android:textSize="20sp"
                         android:textStyle="bold" />
@@ -159,7 +171,7 @@
                         android:layout_height="wrap_content"
                         android:layout_alignParentEnd="true"
                         android:layout_centerVertical="true"
-                        android:text="See All"
+                        android:text="Vedi Tutto"
                         android:textColor="@color/text_secondary"
                         android:textSize="14sp"
                         android:textStyle="bold" />
@@ -202,7 +214,7 @@
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:layout_marginTop="8dp"
-                                android:text="Breakfast"
+                                android:text="Colazione"
                                 android:textColor="@color/text_secondary"
                                 android:textSize="12sp"
                                 android:textStyle="bold" />
@@ -235,7 +247,7 @@
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:layout_marginTop="8dp"
-                                android:text="Lunch"
+                                android:text="Pranzo"
                                 android:textColor="@color/text_secondary"
                                 android:textSize="12sp"
                                 android:textStyle="bold" />
@@ -268,7 +280,7 @@
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:layout_marginTop="8dp"
-                                android:text="Dinner"
+                                android:text="Cena"
                                 android:textColor="@color/text_secondary"
                                 android:textSize="12sp"
                                 android:textStyle="bold" />
@@ -333,7 +345,7 @@
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:layout_marginTop="8dp"
-                                android:text="Salads"
+                                android:text="Insalate"
                                 android:textColor="@color/text_secondary"
                                 android:textSize="12sp"
                                 android:textStyle="bold" />
@@ -357,7 +369,7 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Recently Viewed"
+                    android:text="Visti di recente"
                     android:textColor="@color/white"
                     android:textSize="18sp"
                     android:textStyle="bold" />
@@ -394,7 +406,7 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Favorites"
+                    android:text="Preferiti"
                     android:textColor="@color/white"
                     android:textSize="18sp"
                     android:textStyle="bold" />
@@ -417,13 +429,43 @@
                 </HorizontalScrollView>
             </LinearLayout>
 
+            <LinearLayout
+                android:id="@+id/layout_generated_header"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="24dp"
+                android:layout_marginBottom="16dp"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:visibility="gone">
+
+                <ImageButton
+                    android:id="@+id/btn_back_generated"
+                    android:layout_width="40dp"
+                    android:layout_height="40dp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:src="@drawable/ic_back"
+                    android:tint="@color/white"
+                    android:contentDescription="Torna indietro" />
+
+                <TextView
+                    android:id="@+id/tv_generated_title"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="8dp"
+                    android:text="0 ricette generate"
+                    android:textColor="@color/white"
+                    android:textSize="24sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
+
             <TextView
                 android:id="@+id/tv_recipe_count"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="24dp"
-                android:layout_marginBottom="48dp"
-                android:text="00 new\nrecipes"
+                android:layout_marginBottom="8dp"
+                android:text="00 nuove\nricette"
                 android:textColor="@color/white"
                 android:textSize="24sp"
                 android:textStyle="bold" />
@@ -433,8 +475,123 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
+                android:paddingTop="56dp"
                 android:clipChildren="false"
                 android:clipToPadding="false">
+            </LinearLayout>
+
+            </LinearLayout> <!-- End layout_home_content -->
+
+            <!-- Custom Loading State Container (visible only during generation) -->
+            <LinearLayout
+                android:id="@+id/layout_loading_state"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="24dp"
+                android:gravity="center"
+                android:orientation="vertical"
+                android:visibility="gone">
+
+                <!-- Animated Emoji Circle -->
+                <FrameLayout
+                    android:id="@+id/layout_emoji_container"
+                    android:layout_width="120dp"
+                    android:layout_height="120dp"
+                    android:background="@drawable/circle_shape"
+                    android:backgroundTint="#2C2D35">
+
+                    <TextView
+                        android:id="@+id/tv_loading_emoji"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="center"
+                        android:text="🍳"
+                        android:textSize="56sp" />
+                </FrameLayout>
+
+                <!-- Loading Title -->
+                <TextView
+                    android:id="@+id/tv_loading_title"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="24dp"
+                    android:text="Creando qualche idea..."
+                    android:textColor="@color/white"
+                    android:textSize="20sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/tv_loading_subtitle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:text="Consultando i nostri chef stellati"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="14sp" />
+
+                <!-- Tip Card Slider -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="32dp"
+                    android:background="@drawable/card_bg"
+                    android:backgroundTint="#2C2D35"
+                    android:orientation="vertical"
+                    android:padding="20dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="💡 CONSIGLIO DELLO CHEF"
+                        android:textColor="@color/accent_color"
+                        android:textSize="12sp"
+                        android:textStyle="bold"
+                        android:layout_gravity="center_horizontal"
+                        android:letterSpacing="0.1"/>
+
+                    <TextView
+                        android:id="@+id/tv_loading_tip"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="12dp"
+                        android:gravity="center"
+                        android:text="Leggi l'intera ricetta prima di iniziare a cucinare."
+                        android:textColor="@color/text_hint"
+                        android:textSize="15sp"
+                        android:lineSpacingMultiplier="1.2"/>
+                </LinearLayout>
+
+                <!-- Animated Dots Indicator -->
+                <LinearLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="24dp"
+                    android:orientation="horizontal">
+
+                    <View
+                        android:id="@+id/dot1"
+                        android:layout_width="8dp"
+                        android:layout_height="8dp"
+                        android:layout_margin="4dp"
+                        android:background="@drawable/circle_shape"
+                        android:backgroundTint="@color/accent_color" />
+
+                    <View
+                        android:id="@+id/dot2"
+                        android:layout_width="8dp"
+                        android:layout_height="8dp"
+                        android:layout_margin="4dp"
+                        android:background="@drawable/circle_shape"
+                        android:backgroundTint="@color/text_secondary" />
+
+                    <View
+                        android:id="@+id/dot3"
+                        android:layout_width="8dp"
+                        android:layout_height="8dp"
+                        android:layout_margin="4dp"
+                        android:background="@drawable/circle_shape"
+                        android:backgroundTint="@color/text_secondary" />
+                </LinearLayout>
             </LinearLayout>
 
         </LinearLayout>

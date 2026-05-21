@@ -71,6 +71,19 @@ public class HomeActivity extends AppCompatActivity {
     private TextView tvRecipeCount;
     private LinearLayout containerRecipes;
 
+    private View layoutLoadingState;
+    private View layoutHomeContent;
+    private View layoutHeaderBar;
+    private View layoutSearchBar;
+    private View layoutCategories;
+    private View layoutGeneratedHeader;
+    private TextView tvGeneratedTitle;
+    private View btnBackGenerated;
+    private android.os.Handler loadingHandler = new android.os.Handler(android.os.Looper.getMainLooper());
+    private Runnable loadingRunnable;
+    // Guard: prevents updateRecipesUI from flickering content while loading screen is active
+    private boolean isLoadingActive = false;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -130,6 +143,26 @@ public class HomeActivity extends AppCompatActivity {
             ThemeManager.applyTouchScaleAnimation(btnGenerate, () -> generateRecipesFromGemini());
         }
 
+        layoutLoadingState = findViewById(R.id.layout_loading_state);
+        layoutHomeContent = findViewById(R.id.layout_home_content);
+        layoutHeaderBar = findViewById(R.id.layout_header_bar);
+        layoutSearchBar = findViewById(R.id.layout_search_bar);
+        layoutCategories = findViewById(R.id.layout_categories);
+        layoutGeneratedHeader = findViewById(R.id.layout_generated_header);
+        tvGeneratedTitle = findViewById(R.id.tv_generated_title);
+        btnBackGenerated = findViewById(R.id.btn_back_generated);
+
+        if (btnBackGenerated != null) {
+            ThemeManager.applyTouchScaleAnimation(btnBackGenerated, () -> showGeneratedRecipesView(false));
+        }
+
+        // Initialize cache from disk (v6 key – invalidates older mock/untranslated caches)
+        mealDbCache.put("Breakfast", loadCacheFromDisk("Breakfast"));
+        mealDbCache.put("Lunch", loadCacheFromDisk("Lunch"));
+        mealDbCache.put("Dinner", loadCacheFromDisk("Dinner"));
+        mealDbCache.put("Dessert", loadCacheFromDisk("Dessert"));
+        mealDbCache.put("Salads", loadCacheFromDisk("Salads"));
+
         loadDefaultRecipes();
         applyCustomizations();
     }
@@ -143,7 +176,7 @@ public class HomeActivity extends AppCompatActivity {
 
     private void updateIngredientsUI() {
         linearIngredients.removeAllViews();
-        if (currentIngredients.isEmpty()) {
+        if (currentIngredients.isEmpty() || (layoutGeneratedHeader != null && layoutGeneratedHeader.getVisibility() == View.VISIBLE)) {
             scrollIngredients.setVisibility(View.GONE);
             btnGenerate.setVisibility(View.GONE);
             return;
@@ -170,15 +203,16 @@ public class HomeActivity extends AppCompatActivity {
     private void generateRecipesFromGemini() {
         if (currentIngredients.isEmpty()) return;
 
-        progressBar.setVisibility(View.VISIBLE);
+        progressBar.setVisibility(View.GONE);
         btnGenerate.setEnabled(false);
+        showLoadingState(false);
 
         new Thread(() -> {
             try {
                 if (GEMINI_API_KEY.equals("YOUR_GEMINI_API_KEY_HERE")) {
                     Thread.sleep(1500); // Simulate network
-                    Recipe r1 = createMockRecipe("Gemini generated 1");
-                    Recipe r2 = createMockRecipe("Gemini generated 2");
+                    Recipe r1 = createMockRecipe("Ricetta Generata 1");
+                    Recipe r2 = createMockRecipe("Ricetta Generata 2");
                     currentRecipes.clear();
                     currentRecipes.add(r1);
                     currentRecipes.add(r2);
@@ -193,18 +227,21 @@ public class HomeActivity extends AppCompatActivity {
                     String prompt = "I have these ingredients: " + String.join(", ", currentIngredients) + ". " +
                             "Suggest 3 creative and delicious recipes that primarily use these ingredients. " +
                             "You can assume basic pantry staples like oil, salt, pepper, and water are available. " +
-                            "For each recipe, provide: " +
+                            "IMPORTANT: Provide all the recipe text details (title, description, steps, tips, ingredient names, and ingredient amounts if units are words) in Italian. " +
+                            "Translate the difficulty to 'Facile', 'Medio', or 'Difficile'. " +
+                            "However, the 'imageKeyword' field MUST be in English (1 or 2 words only) to help search for an image on Unsplash/MealDB. " +
+                            "For each recipe, provide:\n" +
                             "- id: a unique short string\n" +
-                            "- title: name of the dish\n" +
-                            "- description: a short, appetizing summary\n" +
+                            "- title: name of the dish in Italian\n" +
+                            "- description: a short, appetizing summary in Italian\n" +
                             "- time: total cooking time (e.g., \"15 min\")\n" +
-                            "- difficulty: \"Easy\", \"Medium\", or \"Hard\"\n" +
+                            "- difficulty: 'Facile', 'Medio', or 'Difficile'\n" +
                             "- rating: A number between 4.0 and 5.0 representing the general user rating\n" +
-                            "- ingredients: an array of objects representing required ingredients. For each, give a \"name\", an \"amount\", and an \"emoji\" that best represents it\n" +
+                            "- ingredients: an array of objects representing required ingredients. For each, give a \"name\" in Italian, an \"amount\" in Italian (e.g. \"100g\" or \"1 cucchiaio\"), and an \"emoji\" that best represents it\n" +
                             "- nutrition: an estimated nutritional breakdown per serving with number values for \"proteins\", \"fats\", and \"carbs\" (in grams)\n" +
-                            "- steps: numbered step-by-step instructions\n" +
-                            "- tips: an optional professional chef tip\n" +
-                            "- imageKeyword: a short, 1 or 2 word keyword to search for an image of this dish";
+                            "- steps: numbered step-by-step instructions in Italian\n" +
+                            "- tips: an optional professional chef tip in Italian\n" +
+                            "- imageKeyword: a short, 1 or 2 word keyword IN ENGLISH to search for an image of this dish";
 
                     part.put("text", prompt);
                     parts.put(part);
@@ -279,7 +316,7 @@ public class HomeActivity extends AppCompatActivity {
                     requestBody.put("generationConfig", generationConfig);
 
                     String responseJsonStr = null;
-                    String[] models = {"gemini-3-flash-preview", "gemini-2.5-flash", "gemini-1.5-flash"};
+                    String[] models = {"gemini-2.5-flash", "gemini-1.5-flash"};
                     for (String model : models) {
                         try {
                             Log.d("GeminiCall", "Trying to generate recipe using model: " + model);
@@ -355,16 +392,16 @@ public class HomeActivity extends AppCompatActivity {
                 }
 
                 runOnUiThread(() -> {
-                    progressBar.setVisibility(View.GONE);
-                    btnGenerate.setEnabled(true);
                     generatedRecipes.clear();
                     generatedRecipes.addAll(currentRecipes);
-                    updateRecipesUI();
+                    showGeneratedRecipesView(true);
+                    dismissLoadingState();
+                    btnGenerate.setEnabled(true);
                 });
             } catch (Exception e) {
                 e.printStackTrace();
                 runOnUiThread(() -> {
-                    progressBar.setVisibility(View.GONE);
+                    dismissLoadingState();
                     btnGenerate.setEnabled(true);
                     Toast.makeText(HomeActivity.this, "Failed to generate: " + e.getMessage(), Toast.LENGTH_LONG).show();
                 });
@@ -380,21 +417,27 @@ public class HomeActivity extends AppCompatActivity {
         return new Recipe(
                 String.valueOf(System.currentTimeMillis()),
                 title,
-                "A delicious meal.",
+                "Un pasto delizioso.",
                 "15 min",
-                "Medium",
+                "Medio",
                 4.8,
-                Arrays.asList(new Ingredient("Pork", "100g", "🥩"), new Ingredient("Noodle", "200g", "🍜")),
+                Arrays.asList(new Ingredient("Maiale", "100g", "🥩"), new Ingredient("Noodle", "200g", "🍜")),
                 3.45, 10.69, 22.72,
-                Arrays.asList("Boil water.", "Add noodles.", "Enjoy."),
-                "Add some extra soy sauce for flavor.",
+                Arrays.asList("Far bollire l'acqua.", "Aggiungere la pasta.", "Gusta il piatto."),
+                "Aggiungi un po' di salsa di soia extra per insaporire.",
                 getFallbackImage(title)
         );
     }
 
     private void updateRecipesUI() {
-        String label = activeTab.toLowerCase();
-        tvRecipeCount.setText(String.format("%02d %s recipes", currentRecipes.size(), label));
+        String label = activeTab;
+        if (activeTab.equalsIgnoreCase("Breakfast")) label = "Colazione";
+        else if (activeTab.equalsIgnoreCase("Lunch")) label = "Pranzo";
+        else if (activeTab.equalsIgnoreCase("Dinner")) label = "Cena";
+        else if (activeTab.equalsIgnoreCase("Dessert")) label = "Dessert";
+        else if (activeTab.equalsIgnoreCase("Salads")) label = "Insalate";
+        
+        tvRecipeCount.setText(String.format("%02d ricette per %s", currentRecipes.size(), label.toLowerCase()));
         containerRecipes.removeAllViews();
 
         LayoutInflater inflater = LayoutInflater.from(this);
@@ -600,147 +643,226 @@ public class HomeActivity extends AppCompatActivity {
         }
     }
 
+    private void saveCacheToDisk(String tabName, List<Recipe> recipes) {
+        try {
+            SharedPreferences cachePrefs = getSharedPreferences("mealdb_recipes_cache_v6", Context.MODE_PRIVATE);
+            JSONArray arr = new JSONArray();
+            for (Recipe recipe : recipes) {
+                arr.put(recipe.toJson());
+            }
+            cachePrefs.edit().putString(tabName, arr.toString()).apply();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    private List<Recipe> loadCacheFromDisk(String tabName) {
+        List<Recipe> list = new ArrayList<>();
+        SharedPreferences cachePrefs = getSharedPreferences("mealdb_recipes_cache_v6", Context.MODE_PRIVATE);
+        String cacheStr = cachePrefs.getString(tabName, null);
+        if (cacheStr != null) {
+            try {
+                JSONArray arr = new JSONArray(cacheStr);
+                for (int i = 0; i < arr.length(); i++) {
+                    Recipe r = Recipe.fromJson(arr.getString(i));
+                    if (r != null) {
+                        list.add(r);
+                    }
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+        return list;
+    }
+
+    private List<Recipe> fetchCategoryFromMealDb(String categoryName) throws Exception {
+        URL url = new URL("https://www.themealdb.com/api/json/v1/1/filter.php?c=" + categoryName);
+        HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+        conn.setRequestMethod("GET");
+        if (conn.getResponseCode() == 200) {
+            BufferedReader br = new BufferedReader(new InputStreamReader(conn.getInputStream(), "UTF-8"));
+            StringBuilder sb = new StringBuilder();
+            String line;
+            while ((line = br.readLine()) != null) {
+                sb.append(line);
+            }
+            br.close();
+
+            JSONObject res = new JSONObject(sb.toString());
+            List<Recipe> fetchedRecipes = new ArrayList<>();
+            if (res.has("meals") && !res.isNull("meals")) {
+                JSONArray meals = res.getJSONArray("meals");
+                
+                List<JSONObject> mealList = new ArrayList<>();
+                for (int i = 0; i < meals.length(); i++) {
+                    mealList.add(meals.getJSONObject(i));
+                }
+                Collections.shuffle(mealList);
+                int count = Math.min(mealList.size(), 6);
+
+                java.util.concurrent.ExecutorService executor = java.util.concurrent.Executors.newFixedThreadPool(4);
+                java.util.concurrent.Future<Recipe>[] futures = new java.util.concurrent.Future[count];
+
+                for (int i = 0; i < count; i++) {
+                    final JSONObject m = mealList.get(i);
+                    futures[i] = executor.submit(() -> {
+                        try {
+                            String idMeal = m.getString("idMeal");
+                            URL detailsUrl = new URL("https://www.themealdb.com/api/json/v1/1/lookup.php?i=" + idMeal);
+                            HttpURLConnection detailsConn = (HttpURLConnection) detailsUrl.openConnection();
+                            detailsConn.setRequestMethod("GET");
+                            if (detailsConn.getResponseCode() == 200) {
+                                BufferedReader dBr = new BufferedReader(new InputStreamReader(detailsConn.getInputStream(), "UTF-8"));
+                                StringBuilder dSb = new StringBuilder();
+                                String dLine;
+                                while ((dLine = dBr.readLine()) != null) {
+                                    dSb.append(dLine);
+                                }
+                                dBr.close();
+
+                                JSONObject detailsRes = new JSONObject(dSb.toString());
+                                if (detailsRes.has("meals") && !detailsRes.isNull("meals")) {
+                                    JSONObject details = detailsRes.getJSONArray("meals").getJSONObject(0);
+
+                                    List<Ingredient> ingredients = new ArrayList<>();
+                                    for (int k = 1; k <= 20; k++) {
+                                        if (details.has("strIngredient" + k) && !details.isNull("strIngredient" + k)) {
+                                            String name = details.getString("strIngredient" + k);
+                                            String amount = details.has("strMeasure" + k) && !details.isNull("strMeasure" + k)
+                                                    ? details.getString("strMeasure" + k)
+                                                    : "to taste";
+                                             if (!name.trim().isEmpty()) {
+                                                 ingredients.add(new Ingredient(name, amount, getIngredientEmoji(name)));
+                                             }
+                                        }
+                                    }
+
+                                    String instructionsText = details.optString("strInstructions", "");
+                                    List<String> steps = new ArrayList<>();
+                                    for (String step : instructionsText.split("\r\n")) {
+                                        if (!step.trim().isEmpty()) {
+                                            steps.add(step.trim());
+                                        }
+                                    }
+                                    if (steps.isEmpty() && !instructionsText.isEmpty()) {
+                                        steps.add(instructionsText);
+                                    }
+
+                                    double proteins = Math.floor(Math.random() * 30) + 10;
+                                    double fats = Math.floor(Math.random() * 20) + 5;
+                                    double carbs = Math.floor(Math.random() * 50) + 15;
+                                    double rating = Math.round((Math.random() * (5.0 - 4.2) + 4.2) * 10.0) / 10.0;
+                                    String[] times = {"15 min", "25 min", "45 min", "1 hr"};
+                                    String time = times[(int) (Math.random() * 4)];
+                                    String[] diffs = {"Easy", "Medium", "Hard"};
+                                    String diff = diffs[(int) (Math.random() * 3)];
+
+                                    return new Recipe(
+                                            idMeal,
+                                            details.getString("strMeal"),
+                                            "A delicious " + details.optString("strArea", "") + " " + details.optString("strCategory", "") + " dish.",
+                                            time,
+                                            diff,
+                                            rating,
+                                            ingredients,
+                                            proteins, fats, carbs,
+                                            steps,
+                                            "Serve hot and enjoy!",
+                                            details.getString("strMealThumb")
+                                    );
+                                }
+                            }
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
+                        return null;
+                    });
+                }
+
+                for (int i = 0; i < count; i++) {
+                    try {
+                        Recipe r = futures[i].get();
+                        if (r != null) {
+                            fetchedRecipes.add(r);
+                        }
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                }
+                executor.shutdown();
+                return fetchedRecipes;
+            }
+        }
+        return new ArrayList<>();
+    }
+
+    private void preFetchOtherTabs() {
+        String[] tabs = {"Lunch", "Dinner", "Dessert", "Salads"};
+        String[] categories = {"Chicken", "Beef", "Dessert", "Vegetarian"};
+        
+        new Thread(() -> {
+            for (int i = 0; i < tabs.length; i++) {
+                if (i > 0) {
+                    try {
+                        Thread.sleep(7000); // safety delay to avoid Gemini rate limits during background pre-fetch
+                    } catch (InterruptedException ignored) {}
+                }
+                String tab = tabs[i];
+                String cat = categories[i];
+                if (!mealDbCache.containsKey(tab) || mealDbCache.get(tab) == null || mealDbCache.get(tab).isEmpty()) {
+                    try {
+                        List<Recipe> fetched = fetchCategoryFromMealDb(cat);
+                        List<Recipe> translated = translateRecipesToItalian(fetched);
+                        if (translated != null && !translated.isEmpty()) {
+                            mealDbCache.put(tab, translated);
+                            saveCacheToDisk(tab, translated);
+                        }
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                }
+            }
+        }).start();
+    }
+
     private void loadMealDbRecipes(String categoryName, String tabName) {
-        if (mealDbCache.containsKey(tabName)) {
+        // If we have a valid in-memory cache for this tab, use it immediately (no loading needed)
+        List<Recipe> cached = mealDbCache.get(tabName);
+        if (cached != null && !cached.isEmpty()) {
             currentRecipes.clear();
-            currentRecipes.addAll(mealDbCache.get(tabName));
+            currentRecipes.addAll(cached);
             updateRecipesUI();
             return;
         }
 
-        progressBar.setVisibility(View.VISIBLE);
+        // No cache available – show the loading animation and fetch+translate
+        progressBar.setVisibility(View.GONE);
+        showLoadingState(true);
         new Thread(() -> {
             try {
-                URL url = new URL("https://www.themealdb.com/api/json/v1/1/filter.php?c=" + categoryName);
-                HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-                conn.setRequestMethod("GET");
-                if (conn.getResponseCode() == 200) {
-                    BufferedReader br = new BufferedReader(new InputStreamReader(conn.getInputStream(), "UTF-8"));
-                    StringBuilder sb = new StringBuilder();
-                    String line;
-                    while ((line = br.readLine()) != null) {
-                        sb.append(line);
-                    }
-                    br.close();
-
-                    JSONObject res = new JSONObject(sb.toString());
-                    List<Recipe> fetchedRecipes = new ArrayList<>();
-                    if (res.has("meals") && !res.isNull("meals")) {
-                        JSONArray meals = res.getJSONArray("meals");
-                        
-                        List<JSONObject> mealList = new ArrayList<>();
-                        for (int i = 0; i < meals.length(); i++) {
-                            mealList.add(meals.getJSONObject(i));
-                        }
-                        Collections.shuffle(mealList);
-                        int count = Math.min(mealList.size(), 12);
-
-                        java.util.concurrent.ExecutorService executor = java.util.concurrent.Executors.newFixedThreadPool(4);
-                        java.util.concurrent.Future<Recipe>[] futures = new java.util.concurrent.Future[count];
-
-                        for (int i = 0; i < count; i++) {
-                            final JSONObject m = mealList.get(i);
-                            futures[i] = executor.submit(() -> {
-                                try {
-                                    String idMeal = m.getString("idMeal");
-                                    URL detailsUrl = new URL("https://www.themealdb.com/api/json/v1/1/lookup.php?i=" + idMeal);
-                                    HttpURLConnection detailsConn = (HttpURLConnection) detailsUrl.openConnection();
-                                    detailsConn.setRequestMethod("GET");
-                                    if (detailsConn.getResponseCode() == 200) {
-                                        BufferedReader dBr = new BufferedReader(new InputStreamReader(detailsConn.getInputStream(), "UTF-8"));
-                                        StringBuilder dSb = new StringBuilder();
-                                        String dLine;
-                                        while ((dLine = dBr.readLine()) != null) {
-                                            dSb.append(dLine);
-                                        }
-                                        dBr.close();
-
-                                        JSONObject detailsRes = new JSONObject(dSb.toString());
-                                        if (detailsRes.has("meals") && !detailsRes.isNull("meals")) {
-                                            JSONObject details = detailsRes.getJSONArray("meals").getJSONObject(0);
-
-                                            List<Ingredient> ingredients = new ArrayList<>();
-                                            for (int k = 1; k <= 20; k++) {
-                                                if (details.has("strIngredient" + k) && !details.isNull("strIngredient" + k)) {
-                                                    String name = details.getString("strIngredient" + k);
-                                                    String amount = details.has("strMeasure" + k) && !details.isNull("strMeasure" + k)
-                                                            ? details.getString("strMeasure" + k)
-                                                            : "to taste";
-                                                     if (!name.trim().isEmpty()) {
-                                                         ingredients.add(new Ingredient(name, amount, getIngredientEmoji(name)));
-                                                     }
-                                                }
-                                            }
-
-                                            String instructionsText = details.optString("strInstructions", "");
-                                            List<String> steps = new ArrayList<>();
-                                            for (String step : instructionsText.split("\r\n")) {
-                                                if (!step.trim().isEmpty()) {
-                                                    steps.add(step.trim());
-                                                }
-                                            }
-                                            if (steps.isEmpty() && !instructionsText.isEmpty()) {
-                                                steps.add(instructionsText);
-                                            }
-
-                                            double proteins = Math.floor(Math.random() * 30) + 10;
-                                            double fats = Math.floor(Math.random() * 20) + 5;
-                                            double carbs = Math.floor(Math.random() * 50) + 15;
-                                            double rating = Math.round((Math.random() * (5.0 - 4.2) + 4.2) * 10.0) / 10.0;
-                                            String[] times = {"15 min", "25 min", "45 min", "1 hr"};
-                                            String time = times[(int) (Math.random() * 4)];
-                                            String[] diffs = {"Easy", "Medium", "Hard"};
-                                            String diff = diffs[(int) (Math.random() * 3)];
-
-                                            return new Recipe(
-                                                    idMeal,
-                                                    details.getString("strMeal"),
-                                                    "A delicious " + details.optString("strArea", "") + " " + details.optString("strCategory", "") + " dish.",
-                                                    time,
-                                                    diff,
-                                                    rating,
-                                                    ingredients,
-                                                    proteins, fats, carbs,
-                                                    steps,
-                                                    "Serve hot and enjoy!",
-                                                    details.getString("strMealThumb")
-                                            );
-                                        }
-                                    }
-                                } catch (Exception e) {
-                                    e.printStackTrace();
-                                }
-                                return null;
-                            });
-                        }
-
-                        for (int i = 0; i < count; i++) {
-                            try {
-                                Recipe r = futures[i].get();
-                                if (r != null) {
-                                    fetchedRecipes.add(r);
-                                }
-                            } catch (Exception e) {
-                                e.printStackTrace();
-                            }
-                        }
-                        executor.shutdown();
-                    }
-                    mealDbCache.put(tabName, fetchedRecipes);
-                    runOnUiThread(() -> {
-                        progressBar.setVisibility(View.GONE);
-                        if (activeTab.equals(tabName)) {
-                            currentRecipes.clear();
-                            currentRecipes.addAll(fetchedRecipes);
-                            updateRecipesUI();
-                        }
-                    });
+                List<Recipe> fetchedRecipes = fetchCategoryFromMealDb(categoryName);
+                List<Recipe> translatedRecipes = translateRecipesToItalian(fetchedRecipes);
+                if (translatedRecipes == null || translatedRecipes.isEmpty()) {
+                    translatedRecipes = fetchedRecipes; // fallback to untranslated if everything failed
                 }
+                mealDbCache.put(tabName, translatedRecipes);
+                saveCacheToDisk(tabName, translatedRecipes);
+                final List<Recipe> finalTranslated = translatedRecipes;
+                runOnUiThread(() -> {
+                    dismissLoadingState();
+                    if (activeTab.equals(tabName)) {
+                        currentRecipes.clear();
+                        currentRecipes.addAll(finalTranslated);
+                        updateRecipesUI();
+                    }
+                    preFetchOtherTabs();
+                });
             } catch (Exception e) {
                 e.printStackTrace();
                 runOnUiThread(() -> {
-                    progressBar.setVisibility(View.GONE);
-                    Toast.makeText(HomeActivity.this, "Failed to load category: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                    dismissLoadingState();
+                    Toast.makeText(HomeActivity.this, "Impossibile caricare la categoria: " + e.getMessage(), Toast.LENGTH_SHORT).show();
                 });
             }
         }).start();
@@ -754,15 +876,31 @@ public class HomeActivity extends AppCompatActivity {
         runOnUiThread(() -> imageView.setImageResource(android.R.drawable.ic_menu_gallery)); // Set default placeholder
         new Thread(() -> {
             try {
-                URL url = new URL(urlStr);
-                HttpURLConnection connection = (HttpURLConnection) url.openConnection();
-                connection.setDoInput(true);
-                connection.connect();
-                InputStream input = connection.getInputStream();
-                Bitmap bitmap = BitmapFactory.decodeStream(input);
+                Bitmap bitmap = null;
+                if (urlStr.startsWith("content://") || urlStr.startsWith("file://")) {
+                    android.net.Uri uri = android.net.Uri.parse(urlStr);
+                    InputStream input = getContentResolver().openInputStream(uri);
+                    bitmap = BitmapFactory.decodeStream(input);
+                    if (input != null) input.close();
+                } else if (urlStr.startsWith("http://") || urlStr.startsWith("https://")) {
+                    URL url = new URL(urlStr);
+                    HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+                    connection.setDoInput(true);
+                    connection.connect();
+                    InputStream input = connection.getInputStream();
+                    bitmap = BitmapFactory.decodeStream(input);
+                    if (input != null) input.close();
+                } else {
+                    java.io.File file = new java.io.File(urlStr);
+                    if (file.exists()) {
+                        bitmap = BitmapFactory.decodeFile(file.getAbsolutePath());
+                    }
+                }
+                
+                final Bitmap finalBitmap = bitmap;
                 runOnUiThread(() -> {
-                    if (bitmap != null) {
-                        imageView.setImageBitmap(bitmap);
+                    if (finalBitmap != null) {
+                        imageView.setImageBitmap(finalBitmap);
                     } else {
                         imageView.setImageResource(android.R.drawable.ic_menu_gallery);
                     }
@@ -886,44 +1024,91 @@ public class HomeActivity extends AppCompatActivity {
     }
 
     private String makeGeminiCall(String modelName, String requestBodyStr) throws Exception {
-        URL url = new URL("https://generativelanguage.googleapis.com/v1beta/models/" + modelName + ":generateContent?key=" + GEMINI_API_KEY);
-        HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-        conn.setRequestMethod("POST");
-        conn.setRequestProperty("Content-Type", "application/json");
-        conn.setDoOutput(true);
-        conn.setConnectTimeout(30000);
-        conn.setReadTimeout(60000);
+        int maxRetries = 3;
+        long retryDelayMs = 3000;
+        
+        for (int attempt = 1; attempt <= maxRetries; attempt++) {
+            HttpURLConnection conn = null;
+            try {
+                URL url = new URL("https://generativelanguage.googleapis.com/v1beta/models/" + modelName + ":generateContent?key=" + GEMINI_API_KEY);
+                conn = (HttpURLConnection) url.openConnection();
+                conn.setRequestMethod("POST");
+                conn.setRequestProperty("Content-Type", "application/json");
+                conn.setDoOutput(true);
+                conn.setConnectTimeout(30000);
+                conn.setReadTimeout(60000);
 
-        OutputStream os = conn.getOutputStream();
-        os.write(requestBodyStr.getBytes("UTF-8"));
-        os.close();
+                OutputStream os = conn.getOutputStream();
+                os.write(requestBodyStr.getBytes("UTF-8"));
+                os.close();
 
-        int responseCode = conn.getResponseCode();
-        if (responseCode == 200) {
-            BufferedReader br = new BufferedReader(new InputStreamReader(conn.getInputStream(), "UTF-8"));
-            StringBuilder sb = new StringBuilder();
-            String line;
-            while ((line = br.readLine()) != null) {
-                sb.append(line);
-            }
-            br.close();
-            return sb.toString();
-        } else {
-            InputStream errorStream = conn.getErrorStream();
-            String errorMsg = "";
-            if (errorStream != null) {
-                BufferedReader br = new BufferedReader(new InputStreamReader(errorStream, "UTF-8"));
-                StringBuilder sb = new StringBuilder();
-                String line;
-                while ((line = br.readLine()) != null) {
-                    sb.append(line);
+                int responseCode = conn.getResponseCode();
+                if (responseCode == 200) {
+                    BufferedReader br = new BufferedReader(new InputStreamReader(conn.getInputStream(), "UTF-8"));
+                    StringBuilder sb = new StringBuilder();
+                    String line;
+                    while ((line = br.readLine()) != null) {
+                        sb.append(line);
+                    }
+                    br.close();
+                    return sb.toString();
+                } else if (responseCode == 429) {
+                    InputStream errorStream = conn.getErrorStream();
+                    String errorMsg = "";
+                    if (errorStream != null) {
+                        BufferedReader br = new BufferedReader(new InputStreamReader(errorStream, "UTF-8"));
+                        StringBuilder sb = new StringBuilder();
+                        String line;
+                        while ((line = br.readLine()) != null) {
+                            sb.append(line);
+                        }
+                        br.close();
+                        errorMsg = sb.toString();
+                    }
+                    Log.w("GeminiCall", "Rate limit (429) hit on model " + modelName + ", attempt " + attempt + " of " + maxRetries + ". Error: " + errorMsg);
+                    if (attempt < maxRetries) {
+                        try {
+                            Thread.sleep(retryDelayMs);
+                        } catch (InterruptedException ignored) {}
+                        retryDelayMs *= 2;
+                        continue;
+                    }
+                    throw new GeminiHttpException(responseCode, errorMsg);
+                } else {
+                    InputStream errorStream = conn.getErrorStream();
+                    String errorMsg = "";
+                    if (errorStream != null) {
+                        BufferedReader br = new BufferedReader(new InputStreamReader(errorStream, "UTF-8"));
+                        StringBuilder sb = new StringBuilder();
+                        String line;
+                        while ((line = br.readLine()) != null) {
+                            sb.append(line);
+                        }
+                        br.close();
+                        errorMsg = sb.toString();
+                        Log.e("GeminiError", "Response Code: " + responseCode + ", Error: " + errorMsg);
+                    }
+                    throw new GeminiHttpException(responseCode, errorMsg);
                 }
-                br.close();
-                errorMsg = sb.toString();
-                Log.e("GeminiError", "Response Code: " + responseCode + ", Error: " + errorMsg);
+            } catch (Exception e) {
+                if (e instanceof GeminiHttpException && ((GeminiHttpException) e).getStatusCode() == 429) {
+                    throw e;
+                }
+                Log.e("GeminiCall", "Exception in makeGeminiCall (attempt " + attempt + "): " + e.getMessage());
+                if (attempt == maxRetries) {
+                    throw e;
+                }
+                try {
+                    Thread.sleep(retryDelayMs);
+                } catch (InterruptedException ignored) {}
+                retryDelayMs *= 2;
+            } finally {
+                if (conn != null) {
+                    conn.disconnect();
+                }
             }
-            throw new GeminiHttpException(responseCode, errorMsg);
         }
+        throw new Exception("Failed to make Gemini call after " + maxRetries + " attempts");
     }
 
     private void applyCustomizations() {
@@ -934,13 +1119,25 @@ public class HomeActivity extends AppCompatActivity {
         // Update profile picture
         ImageView ivProfile = findViewById(R.id.iv_profile);
         if (ivProfile != null) {
+            ivProfile.setPadding(6, 6, 6, 6);
+            GradientDrawable border = new GradientDrawable();
+            border.setShape(GradientDrawable.OVAL);
+            border.setColor(accentColor);
+            ivProfile.setBackground(border);
+            ivProfile.setOutlineProvider(new android.view.ViewOutlineProvider() {
+                @Override
+                public void getOutline(android.view.View view, android.graphics.Outline outline) {
+                    outline.setOval(0, 0, view.getWidth(), view.getHeight());
+                }
+            });
+            ivProfile.setClipToOutline(true);
             loadImage(ThemeManager.getAvatarUrl(this), ivProfile);
         }
 
         // Update User Greeting Name
         TextView tvHelloUser = findViewById(R.id.tv_hello_user);
         if (tvHelloUser != null) {
-            tvHelloUser.setText("Hello, " + ThemeManager.getUserName(this) + " \uD83D\uDC4B");
+            tvHelloUser.setText("Ciao, " + ThemeManager.getUserName(this) + " \uD83D\uDC4B");
         }
 
         // Update Add Ingredient button text color
@@ -959,8 +1156,10 @@ public class HomeActivity extends AppCompatActivity {
             progressBar.setIndeterminateTintList(ColorStateList.valueOf(accentColor));
         }
 
-        // Update recipes display
-        updateRecipesUI();
+        // Update recipes display only when NOT in loading state
+        if (!isLoadingActive) {
+            updateRecipesUI();
+        }
     }
 
     private void showCustomizationDialog() {
@@ -1023,8 +1222,15 @@ public class HomeActivity extends AppCompatActivity {
         }
 
         // Populate Avatar choices
+        List<String> avatarOptions = new ArrayList<>(ThemeManager.AVATARS);
+        java.io.File customAvatarFile = new java.io.File(getFilesDir(), "profile_picture.jpg");
+        if (customAvatarFile.exists()) {
+            String customPath = customAvatarFile.getAbsolutePath();
+            avatarOptions.add(0, customPath);
+        }
+
         layoutAvatars.removeAllViews();
-        for (String url : ThemeManager.AVATARS) {
+        for (String url : avatarOptions) {
             ImageView avatarView = new ImageView(this);
             int size = (int) (64 * getResources().getDisplayMetrics().density);
             LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(size, size);
@@ -1054,7 +1260,7 @@ public class HomeActivity extends AppCompatActivity {
                 selectedAvatar[0] = url;
                 for (int i = 0; i < layoutAvatars.getChildCount(); i++) {
                     ImageView child = (ImageView) layoutAvatars.getChildAt(i);
-                    String u = ThemeManager.AVATARS.get(i);
+                    String u = avatarOptions.get(i);
                     if (u.equals(selectedAvatar[0])) {
                         child.setAlpha(1.0f);
                         child.setPadding(6, 6, 6, 6);
@@ -1089,5 +1295,669 @@ public class HomeActivity extends AppCompatActivity {
         });
 
         dialog.show();
+    }
+
+    private void showLoadingState(boolean isInitialization) {
+        // Must be called on the main thread – do NOT wrap in runOnUiThread (that would defer
+        // execution to the next looper cycle, letting subsequent main-thread code like
+        // applyCustomizations() run first and flicker the content layout back into view).
+        if (layoutLoadingState == null || layoutHomeContent == null) return;
+
+        isLoadingActive = true;
+
+        // Cancel any running animations or runnable
+        if (loadingRunnable != null) {
+            loadingHandler.removeCallbacks(loadingRunnable);
+            loadingRunnable = null;
+        }
+
+        layoutHomeContent.setVisibility(View.GONE);
+        layoutLoadingState.setVisibility(View.VISIBLE);
+
+        if (layoutHeaderBar != null) layoutHeaderBar.setVisibility(View.GONE);
+        if (layoutSearchBar != null) layoutSearchBar.setVisibility(View.GONE);
+
+        // Hide ingredients scroll and generate button to keep UI completely clean during loading
+        if (scrollIngredients != null) scrollIngredients.setVisibility(View.GONE);
+        if (btnGenerate != null) btnGenerate.setVisibility(View.GONE);
+
+            TextView tvEmoji = layoutLoadingState.findViewById(R.id.tv_loading_emoji);
+            TextView tvTitle = layoutLoadingState.findViewById(R.id.tv_loading_title);
+            TextView tvSubtitle = layoutLoadingState.findViewById(R.id.tv_loading_subtitle);
+            TextView tvTip = layoutLoadingState.findViewById(R.id.tv_loading_tip);
+            View emojiContainer = layoutLoadingState.findViewById(R.id.layout_emoji_container);
+            View dot1 = layoutLoadingState.findViewById(R.id.dot1);
+            View dot2 = layoutLoadingState.findViewById(R.id.dot2);
+            View dot3 = layoutLoadingState.findViewById(R.id.dot3);
+
+            // Set initial texts based on state
+            if (isInitialization) {
+                if (tvTitle != null) tvTitle.setText("Inizializzazione...");
+                if (tvSubtitle != null) tvSubtitle.setText("Preparazione dei tuoi ingredienti freschi");
+            } else {
+                if (tvTitle != null) tvTitle.setText("Creando qualche idea...");
+                if (tvSubtitle != null) tvSubtitle.setText("Consultando i nostri chef stellati");
+            }
+
+            // 1. Rotation animation for the emoji container
+            android.view.animation.RotateAnimation rotate = new android.view.animation.RotateAnimation(
+                0, 360,
+                android.view.animation.Animation.RELATIVE_TO_SELF, 0.5f,
+                android.view.animation.Animation.RELATIVE_TO_SELF, 0.5f
+            );
+            rotate.setDuration(3000);
+            rotate.setRepeatCount(android.view.animation.Animation.INFINITE);
+            rotate.setInterpolator(new android.view.animation.LinearInterpolator());
+            if (emojiContainer != null) {
+                emojiContainer.startAnimation(rotate);
+            }
+
+            // 2. Pulse / Scale animation for the emoji text itself
+            android.view.animation.ScaleAnimation pulse = new android.view.animation.ScaleAnimation(
+                0.8f, 1.2f, 0.8f, 1.2f,
+                android.view.animation.Animation.RELATIVE_TO_SELF, 0.5f,
+                android.view.animation.Animation.RELATIVE_TO_SELF, 0.5f
+            );
+            pulse.setDuration(1200);
+            pulse.setRepeatCount(android.view.animation.Animation.INFINITE);
+            pulse.setRepeatMode(android.view.animation.Animation.REVERSE);
+            if (tvEmoji != null) {
+                tvEmoji.startAnimation(pulse);
+            }
+
+            // List of Chef Tips
+            String[] chefTips = {
+                "Leggi l'intera ricetta prima di iniziare a cucinare.",
+                "Non affollare la padella! Fa evaporare il cibo invece di rosolarlo.",
+                "Fai riposare la carne prima di tagliarla per mantenerla succosa.",
+                "L'acido (succo di limone o aceto) può ravvivare un piatto scialbo.",
+                "Condisci con sale in ogni fase della cottura, non solo alla fine.",
+                "Prepara tutti gli ingredienti (mise en place) prima di accendere i fornelli.",
+                "Un coltello affilato è più sicuro di uno smussato.",
+                "Assaggia il cibo mentre cucini per regolare i condimenti.",
+                "Usa un tovagliolo di carta umido sotto il tagliere per evitare che scivoli."
+            };
+
+            // List of titles
+            String[] loadingTitles = isInitialization ? new String[]{
+                "Inizializzazione...",
+                "Caricamento ingredienti freschi...",
+                "Allestimento della dispensa...",
+                "Preparazione del ricettario...",
+                "Quasi pronto..."
+            } : new String[]{
+                "Creando qualche idea...",
+                "Consultando i nostri chef stellati...",
+                "Impiattando il tuo menu personalizzato...",
+                "Sobbollendo gli ingredienti segreti...",
+                "Miscelando il mix perfetto..."
+            };
+
+            // List of emojis
+            String[] foodEmojis = {"🍳", "🥣", "🥘", "🥗", "🍲", "🥞", "🧁", "🍝", "🍕"};
+
+            final int[] tipIndex = {0};
+            final int[] titleIndex = {0};
+            final int[] emojiIndex = {0};
+            final int[] activeDot = {0};
+
+            loadingRunnable = new Runnable() {
+                @Override
+                public void run() {
+                    if (layoutLoadingState.getVisibility() != View.VISIBLE) return;
+
+                    // Update Chef Tip with simple fade animation
+                    tipIndex[0] = (tipIndex[0] + 1) % chefTips.length;
+                    if (tvTip != null) {
+                        tvTip.animate().alpha(0f).setDuration(250).withEndAction(() -> {
+                            tvTip.setText(chefTips[tipIndex[0]]);
+                            tvTip.animate().alpha(1f).setDuration(250).start();
+                        }).start();
+                    }
+
+                    // Update Title with simple fade animation
+                    titleIndex[0] = (titleIndex[0] + 1) % loadingTitles.length;
+                    if (tvTitle != null) {
+                        tvTitle.animate().alpha(0f).setDuration(250).withEndAction(() -> {
+                            tvTitle.setText(loadingTitles[titleIndex[0]]);
+                            tvTitle.animate().alpha(1f).setDuration(250).start();
+                        }).start();
+                    }
+
+                    // Update Emoji occasionally
+                    emojiIndex[0] = (emojiIndex[0] + 1) % foodEmojis.length;
+                    if (tvEmoji != null) {
+                        tvEmoji.setText(foodEmojis[emojiIndex[0]]);
+                    }
+
+                    // Update dots indicators
+                    activeDot[0] = (activeDot[0] + 1) % 3;
+                    int activeColor = Color.parseColor(ThemeManager.getCurrentTheme(HomeActivity.this).accentColor);
+                    int inactiveColor = getResources().getColor(R.color.text_secondary, getTheme());
+                    if (dot1 != null) dot1.setBackgroundTintList(android.content.res.ColorStateList.valueOf(activeDot[0] == 0 ? activeColor : inactiveColor));
+                    if (dot2 != null) dot2.setBackgroundTintList(android.content.res.ColorStateList.valueOf(activeDot[0] == 1 ? activeColor : inactiveColor));
+                    if (dot3 != null) dot3.setBackgroundTintList(android.content.res.ColorStateList.valueOf(activeDot[0] == 2 ? activeColor : inactiveColor));
+
+                    loadingHandler.postDelayed(this, 2500);
+                }
+            };
+
+        loadingHandler.postDelayed(loadingRunnable, 2500);
+    }
+
+    private void dismissLoadingState() {
+        // dismissLoadingState is always called via runOnUiThread from background threads,
+        // so it is already on the main thread when it runs.
+        isLoadingActive = false;
+        if (loadingRunnable != null) {
+            loadingHandler.removeCallbacks(loadingRunnable);
+            loadingRunnable = null;
+        }
+        if (layoutLoadingState != null) {
+            layoutLoadingState.setVisibility(View.GONE);
+            View emojiContainer = layoutLoadingState.findViewById(R.id.layout_emoji_container);
+            TextView tvEmoji = layoutLoadingState.findViewById(R.id.tv_loading_emoji);
+            if (emojiContainer != null) emojiContainer.clearAnimation();
+            if (tvEmoji != null) tvEmoji.clearAnimation();
+        }
+        if (layoutHomeContent != null) {
+            layoutHomeContent.setVisibility(View.VISIBLE);
+        }
+        if (layoutHeaderBar != null && layoutGeneratedHeader != null && layoutGeneratedHeader.getVisibility() != View.VISIBLE) {
+            layoutHeaderBar.setVisibility(View.VISIBLE);
+        }
+        if (layoutSearchBar != null && layoutGeneratedHeader != null && layoutGeneratedHeader.getVisibility() != View.VISIBLE) {
+            layoutSearchBar.setVisibility(View.VISIBLE);
+        }
+        // Restore ingredients UI visibility dynamically
+        updateIngredientsUI();
+    }
+
+    private void showGeneratedRecipesView(boolean show) {
+        runOnUiThread(() -> {
+            if (show) {
+                // Show only back button and generated recipe count, hide standard greeting, search bar, categories, recents, favorites, tv_recipe_count
+                if (layoutHeaderBar != null) layoutHeaderBar.setVisibility(View.GONE);
+                if (layoutSearchBar != null) layoutSearchBar.setVisibility(View.GONE);
+                if (layoutCategories != null) layoutCategories.setVisibility(View.GONE);
+                if (sectionRecents != null) sectionRecents.setVisibility(View.GONE);
+                if (sectionFavorites != null) sectionFavorites.setVisibility(View.GONE);
+                if (tvRecipeCount != null) tvRecipeCount.setVisibility(View.GONE);
+                if (layoutGeneratedHeader != null) layoutGeneratedHeader.setVisibility(View.VISIBLE);
+                
+                if (tvGeneratedTitle != null) {
+                    tvGeneratedTitle.setText(String.format("%d ricette generate", generatedRecipes.size()));
+                }
+                
+                currentRecipes.clear();
+                currentRecipes.addAll(generatedRecipes);
+                updateRecipesUI();
+            } else {
+                // Restore standard views
+                if (layoutHeaderBar != null) layoutHeaderBar.setVisibility(View.VISIBLE);
+                if (layoutSearchBar != null) layoutSearchBar.setVisibility(View.VISIBLE);
+                if (layoutCategories != null) layoutCategories.setVisibility(View.VISIBLE);
+                if (layoutGeneratedHeader != null) layoutGeneratedHeader.setVisibility(View.GONE);
+                if (tvRecipeCount != null) tvRecipeCount.setVisibility(View.VISIBLE);
+                
+                // Refresh recent and favorites and normal tab recipes
+                populateHorizontalSection(containerRecents, sectionRecents, loadRecents());
+                populateHorizontalSection(containerFavorites, sectionFavorites, loadFavorites());
+                switchTab(activeTab);
+            }
+            updateIngredientsUI();
+        });
+    }
+
+    private List<Recipe> translateRecipesToItalian(List<Recipe> recipes) {
+        if (recipes == null || recipes.isEmpty()) return recipes;
+        return translateRecipesWithMyMemory(recipes);
+    }
+
+    private String translateTextMyMemory(String text) {
+        if (text == null || text.trim().isEmpty()) return text;
+        HttpURLConnection conn = null;
+        try {
+            String encodedText = java.net.URLEncoder.encode(text, "UTF-8");
+            URL url = new URL("https://api.mymemory.translated.net/get?q=" + encodedText + "&langpair=en|it&de=fridggy.app@gmail.com");
+            conn = (HttpURLConnection) url.openConnection();
+            conn.setRequestMethod("GET");
+            conn.setConnectTimeout(5000);
+            conn.setReadTimeout(5000);
+            
+            if (conn.getResponseCode() == 200) {
+                BufferedReader br = new BufferedReader(new InputStreamReader(conn.getInputStream(), "UTF-8"));
+                StringBuilder sb = new StringBuilder();
+                String line;
+                while ((line = br.readLine()) != null) {
+                    sb.append(line);
+                }
+                br.close();
+                
+                JSONObject res = new JSONObject(sb.toString());
+                if (res.has("responseData")) {
+                    JSONObject respData = res.getJSONObject("responseData");
+                    if (respData.has("translatedText")) {
+                        String translated = respData.getString("translatedText");
+                        if (translated != null && !translated.trim().isEmpty()) {
+                            return translated.trim();
+                        }
+                    }
+                }
+            }
+        } catch (Exception e) {
+            Log.e("MyMemoryTranslation", "Error translating text: " + text + ", error: " + e.getMessage());
+        } finally {
+            if (conn != null) {
+                conn.disconnect();
+            }
+        }
+        return text;
+    }
+
+    private List<Recipe> translateRecipesWithMyMemory(List<Recipe> recipes) {
+        if (recipes == null || recipes.isEmpty()) return recipes;
+
+        java.util.Set<String> stringsToTranslate = new java.util.HashSet<>();
+        for (Recipe r : recipes) {
+            if (r.getTitle() != null && !r.getTitle().trim().isEmpty()) {
+                stringsToTranslate.add(r.getTitle().trim());
+            }
+            if (r.getIngredients() != null) {
+                for (Ingredient ing : r.getIngredients()) {
+                    if (ing.getName() != null && !ing.getName().trim().isEmpty()) {
+                        stringsToTranslate.add(ing.getName().trim());
+                    }
+                }
+            }
+            if (r.getSteps() != null) {
+                for (String step : r.getSteps()) {
+                    if (step != null && !step.trim().isEmpty()) {
+                        stringsToTranslate.add(step.trim());
+                    }
+                }
+            }
+        }
+
+        java.util.concurrent.ConcurrentHashMap<String, String> translationMap = new java.util.concurrent.ConcurrentHashMap<>();
+        java.util.concurrent.ExecutorService executor = java.util.concurrent.Executors.newFixedThreadPool(6);
+        java.util.List<java.util.concurrent.Future<?>> futures = new ArrayList<>();
+
+        for (final String text : stringsToTranslate) {
+            futures.add(executor.submit(() -> {
+                String translated = translateTextMyMemory(text);
+                if (translated != null) {
+                    translationMap.put(text, translated);
+                }
+            }));
+        }
+
+        executor.shutdown();
+        try {
+            executor.awaitTermination(15, java.util.concurrent.TimeUnit.SECONDS);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+
+        List<Recipe> translatedList = new ArrayList<>();
+        for (Recipe r : recipes) {
+            String title = translationMap.get(r.getTitle().trim());
+            if (title == null || title.equals(r.getTitle().trim())) {
+                translatedList.add(translateRecipeMock(r));
+                continue;
+            }
+
+            String description = r.getDescription();
+            if (description.startsWith("A delicious ")) {
+                description = description.replace("A delicious ", "Un delizioso piatto di tipo ")
+                                         .replace(" dish.", ".");
+            }
+            description = translateTextMyMemory(description);
+
+            String difficulty = r.getDifficulty();
+            if (difficulty.equalsIgnoreCase("Easy")) difficulty = "Facile";
+            else if (difficulty.equalsIgnoreCase("Medium")) difficulty = "Medio";
+            else if (difficulty.equalsIgnoreCase("Hard")) difficulty = "Difficile";
+
+            String tips = r.getTips();
+            if (tips.equalsIgnoreCase("Serve hot and enjoy!")) tips = "Servire caldo e gustare!";
+
+            List<Ingredient> ingredients = new ArrayList<>();
+            if (r.getIngredients() != null) {
+                for (Ingredient ing : r.getIngredients()) {
+                    String name = translationMap.getOrDefault(ing.getName().trim(), ing.getName());
+                    String amount = ing.getAmount();
+                    if (amount != null) {
+                        amount = amount.replaceAll("(?i)\\btbsp\\b", "cch.aio")
+                                       .replaceAll("(?i)\\btsp\\b", "cch.ino")
+                                       .replaceAll("(?i)\\bcups\\b", "tazze")
+                                       .replaceAll("(?i)\\bcup\\b", "tazza")
+                                       .replaceAll("(?i)\\boz\\b", "once")
+                                       .replaceAll("(?i)\\blbs\\b", "libbre")
+                                       .replaceAll("(?i)\\blb\\b", "libbra")
+                                       .replaceAll("(?i)\\bpinches\\b", "pizzichi")
+                                       .replaceAll("(?i)\\bpinch\\b", "pizzico")
+                                       .replaceAll("(?i)\\bslices\\b", "fette")
+                                       .replaceAll("(?i)\\bslice\\b", "fetta")
+                                       .replaceAll("(?i)\\bcloves\\b", "spicchi")
+                                       .replaceAll("(?i)\\bclove\\b", "spicchio")
+                                       .replaceAll("(?i)\\bwhole\\b", "intero")
+                                       .replaceAll("(?i)\\bcans\\b", "lattine")
+                                       .replaceAll("(?i)\\bcan\\b", "lattina")
+                                       .replaceAll("(?i)\\bbottle\\b", "bottiglia")
+                                       .replaceAll("(?i)\\bchopped\\b", "tritato");
+                    } else {
+                        amount = "q.b.";
+                    }
+                    ingredients.add(new Ingredient(name, amount, getIngredientEmoji(name)));
+                }
+            }
+
+            List<String> steps = new ArrayList<>();
+            if (r.getSteps() != null) {
+                for (String step : r.getSteps()) {
+                    String translatedStep = translationMap.get(step.trim());
+                    if (translatedStep == null || translatedStep.equals(step.trim())) {
+                        translatedStep = translateStepMockSingle(step);
+                    }
+                    steps.add(translatedStep);
+                }
+            }
+
+            translatedList.add(new Recipe(
+                    r.getId(),
+                    title,
+                    description,
+                    r.getTime(),
+                    difficulty,
+                    r.getRating(),
+                    ingredients,
+                    r.getProteins(),
+                    r.getFats(),
+                    r.getCarbs(),
+                    steps,
+                    tips,
+                    r.getImageUrl()
+            ));
+        }
+
+        return translatedList;
+    }
+
+    private Recipe translateRecipeMock(Recipe r) {
+        String title = r.getTitle();
+        String description = r.getDescription();
+        String difficulty = r.getDifficulty();
+        String tips = r.getTips();
+
+        if (difficulty.equalsIgnoreCase("Easy")) difficulty = "Facile";
+        else if (difficulty.equalsIgnoreCase("Medium")) difficulty = "Medio";
+        else if (difficulty.equalsIgnoreCase("Hard")) difficulty = "Difficile";
+
+        if (tips.equalsIgnoreCase("Serve hot and enjoy!")) tips = "Servire caldo e gustare!";
+
+        if (description.startsWith("A delicious ")) {
+            description = description.replace("A delicious ", "Un delizioso piatto di tipo ")
+                                     .replace(" dish.", ".");
+        }
+
+        List<Ingredient> translatedIngs = new ArrayList<>();
+        for (Ingredient ing : r.getIngredients()) {
+            String name = translateIngredientNameMock(ing.getName());
+            String amount = translateAmountMock(ing.getAmount());
+            translatedIngs.add(new Ingredient(name, amount, getIngredientEmoji(name)));
+        }
+
+        title = translateTitleMock(title);
+
+        return new Recipe(
+                r.getId(),
+                title,
+                description,
+                r.getTime(),
+                difficulty,
+                r.getRating(),
+                translatedIngs,
+                r.getProteins(),
+                r.getFats(),
+                r.getCarbs(),
+                translateStepsMock(r.getSteps()),
+                tips,
+                r.getImageUrl()
+        );
+    }
+
+    private String translateTitleMock(String title) {
+        title = title.replaceAll("(?i)\\bchicken\\b", "Pollo")
+                     .replaceAll("(?i)\\bbeef\\b", "Manzo")
+                     .replaceAll("(?i)\\bsalad\\b", "Insalata")
+                     .replaceAll("(?i)\\bsoup\\b", "Zuppa")
+                     .replaceAll("(?i)\\bcake\\b", "Torta")
+                     .replaceAll("(?i)\\bpie\\b", "Crostata")
+                     .replaceAll("(?i)\\bbread\\b", "Pane")
+                     .replaceAll("(?i)\\bpancakes\\b", "Frittelle")
+                     .replaceAll("(?i)\\bcream\\b", "Crema")
+                     .replaceAll("(?i)\\bsauce\\b", "Salsa")
+                     .replaceAll("(?i)\\broasted\\b", "Arrosto")
+                     .replaceAll("(?i)\\bbaked\\b", "Al forno")
+                     .replaceAll("(?i)\\bsweet\\b", "Dolce")
+                     .replaceAll("(?i)\\bspicy\\b", "Piccante")
+                     .replaceAll("(?i)\\bfried\\b", "Fritto")
+                     .replaceAll("(?i)\\bwith\\b", "con");
+        return title;
+    }
+
+    private String translateAmountMock(String amount) {
+        if (amount == null) return "q.b.";
+        String lower = amount.toLowerCase().trim();
+        if (lower.equals("to taste")) return "q.b.";
+        
+        amount = amount.replaceAll("(?i)\\btbsp\\b", "cch.aio")
+                       .replaceAll("(?i)\\btsp\\b", "cch.ino")
+                       .replaceAll("(?i)\\bcups\\b", "tazze")
+                       .replaceAll("(?i)\\bcup\\b", "tazza")
+                       .replaceAll("(?i)\\boz\\b", "once")
+                       .replaceAll("(?i)\\blbs\\b", "libbre")
+                       .replaceAll("(?i)\\blb\\b", "libbra")
+                       .replaceAll("(?i)\\bpinches\\b", "pizzichi")
+                       .replaceAll("(?i)\\bpinch\\b", "pizzico")
+                       .replaceAll("(?i)\\bslices\\b", "fette")
+                       .replaceAll("(?i)\\bslice\\b", "fetta")
+                       .replaceAll("(?i)\\bcloves\\b", "spicchi")
+                       .replaceAll("(?i)\\bclove\\b", "spicchio")
+                       .replaceAll("(?i)\\bwhole\\b", "intero")
+                       .replaceAll("(?i)\\bcans\\b", "lattine")
+                       .replaceAll("(?i)\\bcan\\b", "lattina")
+                       .replaceAll("(?i)\\bbottle\\b", "bottiglia")
+                       .replaceAll("(?i)\\bchopped\\b", "tritato");
+        return amount;
+    }
+
+    private String translateIngredientNameMock(String name) {
+        String lower = name.toLowerCase().trim();
+        switch (lower) {
+            case "butter": return "burro";
+            case "egg": case "eggs": return "uova";
+            case "milk": return "latte";
+            case "flour": return "farina";
+            case "sugar": return "zucchero";
+            case "salt": return "sale";
+            case "pepper": return "pepe";
+            case "water": return "acqua";
+            case "chicken": return "pollo";
+            case "beef": return "manzo";
+            case "garlic": return "aglio";
+            case "onion": return "cipolla";
+            case "onions": return "cipolle";
+            case "olive oil": return "olio d'oliva";
+            case "vegetable oil": return "olio vegetale";
+            case "tomato": case "tomatoes": return "pomodori";
+            case "cheese": return "formaggio";
+            case "rice": return "riso";
+            case "bread": return "pane";
+            case "potato": case "potatoes": return "patate";
+            case "carrot": case "carrots": return "carote";
+            case "lemon": return "limone";
+            case "lemon juice": return "succo di limone";
+            case "vanilla extract": return "estratto di vaniglia";
+            case "yeast": return "lievito";
+            case "honey": return "miele";
+            case "cinnamon": return "cannella";
+            case "parsley": return "prezzemolo";
+            case "basil": return "basilico";
+            case "cream": return "panna";
+            case "pasta": return "pasta";
+            case "pork": return "maiale";
+            case "spinach": return "spinaci";
+            case "mushrooms": case "mushroom": return "funghi";
+            case "shrimp": case "shrimps": return "gamberetti";
+            case "fish": return "pesce";
+            case "mustard": return "senape";
+            case "vinegar": return "aceto";
+            case "ginger": return "zenzero";
+            case "bacon": return "pancetta";
+            case "ham": return "prosciutto";
+            default: return name;
+        }
+    }
+
+    private List<String> translateStepsMock(List<String> steps) {
+        if (steps == null) return new ArrayList<>();
+        List<String> translated = new ArrayList<>();
+        for (String step : steps) {
+            if (step == null) continue;
+            translated.add(translateStepMockSingle(step));
+        }
+        return translated;
+    }
+
+    private String translateStepMockSingle(String step) {
+        if (step == null) return "";
+        String t = step;
+        // Ovens and heating
+        t = t.replaceAll("(?i)\\bpreheat (the )?oven to\\b", "Preriscaldare il forno a")
+             .replaceAll("(?i)\\bheat (the )?oil\\b", "Scaldare l'olio")
+             .replaceAll("(?i)\\bheat a large (skillet|frying pan)\\b", "Scaldare una padella grande")
+             .replaceAll("(?i)\\bheat a large pot\\b", "Scaldare una pentola grande")
+             .replaceAll("(?i)\\bbring to (a|the) boil\\b", "Portare a bollore")
+             .replaceAll("(?i)\\bsimmer for\\b", "Sobbollire per")
+             .replaceAll("(?i)\\breduce (the )?heat\\b", "Ridurre la fiamma")
+             .replaceAll("(?i)\\bremove from (the )?heat\\b", "Togliere dal fuoco")
+             .replaceAll("(?i)\\blet it cool\\b", "Lasciare raffreddare")
+             .replaceAll("(?i)\\bcool completely\\b", "Raffreddare completamente");
+
+        // Prep verbs
+        t = t.replaceAll("(?i)\\bin a large bowl\\b", "In una ciotola capiente")
+             .replaceAll("(?i)\\bin a medium bowl\\b", "In una ciotola media")
+             .replaceAll("(?i)\\bin a small bowl\\b", "In una ciotola piccola")
+             .replaceAll("(?i)\\bmix together\\b", "Mescolare insieme")
+             .replaceAll("(?i)\\b(mix|stir) well\\b", "Mescolare bene")
+             .replaceAll("(?i)\\bstir in\\b", "Incorporare")
+             .replaceAll("(?i)\\bwhisk together\\b", "Sbattere insieme")
+             .replaceAll("(?i)\\bwhisk the eggs\\b", "Sbattere le uova")
+             .replaceAll("(?i)\\bwhisk well\\b", "Sbattere bene")
+             .replaceAll("(?i)\\bfinely chopped\\b", "tritato finemente")
+             .replaceAll("(?i)\\bchopped finely\\b", "tritato finemente")
+             .replaceAll("(?i)\\bfinely chop\\b", "tritare finemente")
+             .replaceAll("(?i)\\bchop the\\b", "tagliare il")
+             .replaceAll("(?i)\\bslice the\\b", "affettare il")
+             .replaceAll("(?i)\\bcut the\\b", "tagliare il")
+             .replaceAll("(?i)\\bpeel the\\b", "sbucciare il")
+             .replaceAll("(?i)\\bdrain and\\b", "scolare e")
+             .replaceAll("(?i)\\bdrain the\\b", "scolare il")
+             .replaceAll("(?i)\\bpour the mixture\\b", "versare il composto")
+             .replaceAll("(?i)\\bpour into\\b", "versare in")
+             .replaceAll("(?i)\\btransfer to\\b", "trasferire in")
+             .replaceAll("(?i)\\bplace in\\b", "mettere in")
+             .replaceAll("(?i)\\bplace on\\b", "mettere su")
+             .replaceAll("(?i)\\bseason with\\b", "condire con")
+             .replaceAll("(?i)\\bgarnish with\\b", "guarnire con")
+             .replaceAll("(?i)\\bcover and\\b", "coprire e")
+             .replaceAll("(?i)\\bstirring occasionally\\b", "mescolando di tanto in tanto");
+
+        // Cooking & time
+        t = t.replaceAll("(?i)\\bcook for\\b", "Cuocere per")
+             .replaceAll("(?i)\\bbake for\\b", "Cuocere in forno per")
+             .replaceAll("(?i)\\bcook until\\b", "Cuocere fino a quando")
+             .replaceAll("(?i)\\buntil golden brown\\b", "Fino a doratura")
+             .replaceAll("(?i)\\buntil golden\\b", "Fino a doratura")
+             .replaceAll("(?i)\\buntil softened\\b", "fino a quando si ammorbidisce")
+             .replaceAll("(?i)\\buntil soft\\b", "fino a quando si ammorbidisce")
+             .replaceAll("(?i)\\bminutes\\b", "minuti")
+             .replaceAll("(?i)\\bminute\\b", "minuto")
+             .replaceAll("(?i)\\bhours\\b", "ore")
+             .replaceAll("(?i)\\bhour\\b", "ora")
+             .replaceAll("(?i)\\bdegrees\\b", "gradi");
+
+        // Ingredients
+        t = t.replaceAll("(?i)\\badd the chicken\\b", "Aggiungere il pollo")
+             .replaceAll("(?i)\\badd chicken\\b", "Aggiungere pollo")
+             .replaceAll("(?i)\\badd the beef\\b", "Aggiungere il manzo")
+             .replaceAll("(?i)\\badd beef\\b", "Aggiungere manzo")
+             .replaceAll("(?i)\\badd the garlic\\b", "Aggiungere l'aglio")
+             .replaceAll("(?i)\\badd garlic\\b", "Aggiungere aglio")
+             .replaceAll("(?i)\\badd the onions\\b", "Aggiungere le cipolle")
+             .replaceAll("(?i)\\badd the onion\\b", "Aggiungere la cipolla")
+             .replaceAll("(?i)\\badd onions\\b", "Aggiungere cipolle")
+             .replaceAll("(?i)\\badd onion\\b", "Aggiungere cipolla")
+             .replaceAll("(?i)\\badd the butter\\b", "Aggiungere il burro")
+             .replaceAll("(?i)\\badd butter\\b", "Aggiungere burro")
+             .replaceAll("(?i)\\badd the milk\\b", "Aggiungere il latte")
+             .replaceAll("(?i)\\badd milk\\b", "Aggiungere latte")
+             .replaceAll("(?i)\\badd the flour\\b", "Aggiungere la farina")
+             .replaceAll("(?i)\\badd flour\\b", "Aggiungere farina")
+             .replaceAll("(?i)\\badd the sugar\\b", "Aggiungere lo zucchero")
+             .replaceAll("(?i)\\badd sugar\\b", "Aggiungere zucchero")
+             .replaceAll("(?i)\\badd the eggs\\b", "Aggiungere le uova")
+             .replaceAll("(?i)\\badd eggs\\b", "Aggiungere uova")
+             .replaceAll("(?i)\\badd the salt\\b", "Aggiungere il sale")
+             .replaceAll("(?i)\\badd salt\\b", "Aggiungere sale")
+             .replaceAll("(?i)\\badd the pepper\\b", "Aggiungere il pepe")
+             .replaceAll("(?i)\\badd pepper\\b", "Aggiungere pepe")
+             .replaceAll("(?i)\\badd the water\\b", "Aggiungere l'acqua")
+             .replaceAll("(?i)\\badd water\\b", "Aggiungere acqua")
+             .replaceAll("(?i)\\badd the cheese\\b", "Aggiungere il formaggio")
+             .replaceAll("(?i)\\badd cheese\\b", "Aggiungere formaggio")
+             .replaceAll("(?i)\\badd the tomatoes\\b", "Aggiungere i pomodori")
+             .replaceAll("(?i)\\badd tomatoes\\b", "Aggiungere pomodori")
+             .replaceAll("(?i)\\badd the vegetables\\b", "Aggiungere le verdure")
+             .replaceAll("(?i)\\badd vegetables\\b", "Aggiungere verdure")
+             .replaceAll("(?i)\\badd the rice\\b", "Aggiungere il riso")
+             .replaceAll("(?i)\\badd rice\\b", "Aggiungere riso")
+             .replaceAll("(?i)\\badd the pasta\\b", "Aggiungere la pasta")
+             .replaceAll("(?i)\\badd pasta\\b", "Aggiungere pasta")
+             .replaceAll("(?i)\\badd the potatoes\\b", "Aggiungere le patate")
+             .replaceAll("(?i)\\badd potatoes\\b", "Aggiungere patate")
+             .replaceAll("(?i)\\badd the carrots\\b", "Aggiungere le carote")
+             .replaceAll("(?i)\\badd carrots\\b", "Aggiungere carote")
+             .replaceAll("(?i)\\badd the olive oil\\b", "Aggiungere l'olio d'oliva")
+             .replaceAll("(?i)\\badd olive oil\\b", "Aggiungere olio d'oliva")
+             .replaceAll("(?i)\\badd the vegetable oil\\b", "Aggiungere l'olio vegetale")
+             .replaceAll("(?i)\\badd vegetable oil\\b", "Aggiungere olio vegetale");
+
+        // Serving & enjoying
+        t = t.replaceAll("(?i)\\bserve hot\\b", "Servire caldissimo")
+             .replaceAll("(?i)\\bserve warm\\b", "Servire caldo")
+             .replaceAll("(?i)\\bserve with\\b", "Servire con")
+             .replaceAll("(?i)\\bserve immediately\\b", "Servire immediatamente")
+             .replaceAll("(?i)\\benjoy!?\\b", "Buon appetito!");
+
+        // General conjunctions/prepositions
+        t = t.replaceAll("(?i)\\band then\\b", "e poi")
+             .replaceAll("(?i)\\bthen\\b", "poi")
+             .replaceAll("(?i)\\buntil the\\b", "fino a quando il")
+             .replaceAll("(?i)\\buntil it\\b", "fino a quando non")
+             .replaceAll("(?i)\\bwith the\\b", "con il")
+             .replaceAll("(?i)\\bto the\\b", "al")
+             .replaceAll("(?i)\\bin the\\b", "nel")
+             .replaceAll("(?i)\\bon the\\b", "sul")
+             .replaceAll("(?i)\\bfrom the\\b", "dal")
+             .replaceAll("(?i)\\binto the\\b", "nel")
+             .replaceAll("(?i)\\babout\\b", "circa")
+             .replaceAll("(?i)\\bover medium heat\\b", "a fuoco medio")
+             .replaceAll("(?i)\\bover high heat\\b", "a fuoco alto")
+             .replaceAll("(?i)\\bover low heat\\b", "a fuoco basso");
+
+        return t;
     }
 }

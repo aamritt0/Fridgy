@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#E01F2027"
+    android:clickable="true"
+    android:focusable="true">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:layout_margin="32dp"
+        android:gravity="center"
+        android:orientation="vertical">
+
+        <!-- Animated Emoji Circle -->
+        <FrameLayout
+            android:id="@+id/layout_emoji_container"
+            android:layout_width="120dp"
+            android:layout_height="120dp"
+            android:background="@drawable/circle_shape"
+            android:backgroundTint="#2C2D35">
+
+            <TextView
+                android:id="@+id/tv_loading_emoji"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:text="🍳"
+                android:textSize="56sp" />
+        </FrameLayout>
+
+        <!-- Loading Title -->
+        <TextView
+            android:id="@+id/tv_loading_title"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="24dp"
+            android:text="Creando qualche idea..."
+            android:textColor="@color/white"
+            android:textSize="20sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/tv_loading_subtitle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="Consultando i nostri chef stellati"
+            android:textColor="@color/text_secondary"
+            android:textSize="14sp" />
+
+        <!-- Tip Card Slider -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="32dp"
+            android:background="@drawable/card_bg"
+            android:backgroundTint="#2C2D35"
+            android:orientation="vertical"
+            android:padding="20dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="💡 CONSIGLIO DELLO CHEF"
+                android:textColor="@color/accent_color"
+                android:textSize="12sp"
+                android:textStyle="bold"
+                android:layout_gravity="center_horizontal"
+                android:letterSpacing="0.1"/>
+
+            <TextView
+                android:id="@+id/tv_loading_tip"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:gravity="center"
+                android:text="Leggi l'intera ricetta prima di iniziare a cucinare."
+                android:textColor="@color/text_hint"
+                android:textSize="15sp"
+                android:lineSpacingMultiplier="1.2"/>
+        </LinearLayout>
+
+        <!-- Animated Dots Indicator -->
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="24dp"
+            android:orientation="horizontal">
+
+            <View
+                android:id="@+id/dot1"
+                android:layout_width="8dp"
+                android:layout_height="8dp"
+                android:layout_margin="4dp"
+                android:background="@drawable/circle_shape"
+                android:backgroundTint="@color/accent_color" />
+
+            <View
+                android:id="@+id/dot2"
+                android:layout_width="8dp"
+                android:layout_height="8dp"
+                android:layout_margin="4dp"
+                android:background="@drawable/circle_shape"
+                android:backgroundTint="@color/text_secondary" />
+
+            <View
+                android:id="@+id/dot3"
+                android:layout_width="8dp"
+                android:layout_height="8dp"
+                android:layout_margin="4dp"
+                android:background="@drawable/circle_shape"
+                android:backgroundTint="@color/text_secondary" />
+        </LinearLayout>
+
+    </LinearLayout>
+</FrameLayout>
