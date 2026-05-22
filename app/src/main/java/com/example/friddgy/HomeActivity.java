@@ -50,10 +50,7 @@ import android.graphics.drawable.ColorDrawable;
 
 public class HomeActivity extends AppCompatActivity {
 
-    // Use the API key from BuildConfig if available, otherwise fallback
-    private static final String GEMINI_API_KEY = BuildConfig.GEMINI_API_KEY.isEmpty() || BuildConfig.GEMINI_API_KEY.equals("YOUR_GEMINI_API_KEY_HERE")
-            ? "YOUR_GEMINI_API_KEY_HERE"
-            : BuildConfig.GEMINI_API_KEY;
+    // Gemini API key is loaded dynamically from SharedPreferences
 
     private List<String> currentIngredients = new ArrayList<>();
     private List<Recipe> currentRecipes = new ArrayList<>();
@@ -210,22 +207,20 @@ public class HomeActivity extends AppCompatActivity {
     private void generateRecipesFromGemini() {
         if (currentIngredients.isEmpty()) return;
 
+        final String apiKey = ThemeManager.getGeminiApiKey(this);
+        if (apiKey == null || apiKey.trim().isEmpty()) {
+            Toast.makeText(this, "Configura la tua API Key Gemini nelle impostazioni del profilo per sbloccare la generazione con l'IA.", Toast.LENGTH_LONG).show();
+            return;
+        }
+
         progressBar.setVisibility(View.GONE);
         btnGenerate.setEnabled(false);
         showLoadingState(false);
 
         new Thread(() -> {
             try {
-                if (GEMINI_API_KEY.equals("YOUR_GEMINI_API_KEY_HERE")) {
-                    Thread.sleep(1500); // Simulate network
-                    Recipe r1 = createMockRecipe("Ricetta Generata 1");
-                    Recipe r2 = createMockRecipe("Ricetta Generata 2");
-                    currentRecipes.clear();
-                    currentRecipes.add(r1);
-                    currentRecipes.add(r2);
-                } else {
-                    // Build JSON request manually with generationConfig and responseSchema
-                    JSONObject requestBody = new JSONObject();
+                // Build JSON request manually with generationConfig and responseSchema
+                JSONObject requestBody = new JSONObject();
                     JSONArray contents = new JSONArray();
                     JSONObject content = new JSONObject();
                     JSONArray parts = new JSONArray();
@@ -327,7 +322,7 @@ public class HomeActivity extends AppCompatActivity {
                     for (String model : models) {
                         try {
                             Log.d("GeminiCall", "Trying to generate recipe using model: " + model);
-                            responseJsonStr = makeGeminiCall(model, requestBody.toString());
+                            responseJsonStr = makeGeminiCall(model, requestBody.toString(), apiKey);
                             break; // Success!
                         } catch (Exception e) {
                             Log.w("GeminiCall", model + " failed: " + e.getMessage() + ". Retrying with next model...");
@@ -396,7 +391,6 @@ public class HomeActivity extends AppCompatActivity {
                             }
                         }
                     }
-                }
 
                 runOnUiThread(() -> {
                     generatedRecipes.clear();
@@ -1069,14 +1063,14 @@ public class HomeActivity extends AppCompatActivity {
         }
     }
 
-    private String makeGeminiCall(String modelName, String requestBodyStr) throws Exception {
+    private String makeGeminiCall(String modelName, String requestBodyStr, String apiKey) throws Exception {
         int maxRetries = 3;
         long retryDelayMs = 3000;
         
         for (int attempt = 1; attempt <= maxRetries; attempt++) {
             HttpURLConnection conn = null;
             try {
-                URL url = new URL("https://generativelanguage.googleapis.com/v1beta/models/" + modelName + ":generateContent?key=" + GEMINI_API_KEY);
+                URL url = new URL("https://generativelanguage.googleapis.com/v1beta/models/" + modelName + ":generateContent?key=" + apiKey);
                 conn = (HttpURLConnection) url.openConnection();
                 conn.setRequestMethod("POST");
                 conn.setRequestProperty("Content-Type", "application/json");
@@ -1221,6 +1215,11 @@ public class HomeActivity extends AppCompatActivity {
         EditText etName = dialogView.findViewById(R.id.dialog_et_name);
         etName.setText(ThemeManager.getUserName(this));
 
+        EditText etApiKey = dialogView.findViewById(R.id.dialog_et_api_key);
+        if (etApiKey != null) {
+            etApiKey.setText(ThemeManager.getGeminiApiKey(this));
+        }
+
         LinearLayout layoutThemes = dialogView.findViewById(R.id.dialog_layout_themes);
         LinearLayout layoutAvatars = dialogView.findViewById(R.id.dialog_layout_avatars);
 
@@ -1333,6 +1332,11 @@ public class HomeActivity extends AppCompatActivity {
             }
             ThemeManager.setCurrentTheme(HomeActivity.this, selectedTheme[0]);
             ThemeManager.setAvatarUrl(HomeActivity.this, selectedAvatar[0]);
+
+            if (etApiKey != null) {
+                String apiKey = etApiKey.getText().toString().trim();
+                ThemeManager.setGeminiApiKey(HomeActivity.this, apiKey);
+            }
 
             applyCustomizations();
             dialog.dismiss();

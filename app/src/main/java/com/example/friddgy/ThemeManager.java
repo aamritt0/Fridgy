@@ -23,6 +23,7 @@ public class ThemeManager {
     private static final String KEY_USER_NAME = "user_name";
     private static final String KEY_AVATAR_URL = "avatar_url";
     private static final String KEY_THEME_NAME = "theme_name";
+    private static final String KEY_GEMINI_API_KEY = "gemini_api_key";
 
     public static final List<ThemePreset> PRESETS = new ArrayList<>();
     static {
@@ -75,6 +76,16 @@ public class ThemeManager {
     public static void setCurrentTheme(Context context, String themeName) {
         SharedPreferences prefs = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
         prefs.edit().putString(KEY_THEME_NAME, themeName).apply();
+    }
+
+    public static String getGeminiApiKey(Context context) {
+        SharedPreferences prefs = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
+        return prefs.getString(KEY_GEMINI_API_KEY, "");
+    }
+
+    public static void setGeminiApiKey(Context context, String apiKey) {
+        SharedPreferences prefs = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
+        prefs.edit().putString(KEY_GEMINI_API_KEY, apiKey).apply();
     }
 
     public static void applyTouchScaleAnimation(android.view.View view, final Runnable onClick) {
