@@ -1207,8 +1207,12 @@ public class HomeActivity extends AppCompatActivity {
                     outline.setOval(0, 0, view.getWidth(), view.getHeight());
                 }
             });
-            ivProfile.setClipToOutline(true);
-            loadImage(ThemeManager.getAvatarUrl(this), ivProfile);
+            String avatarUrl = ThemeManager.getAvatarUrl(this);
+            if (avatarUrl == null || avatarUrl.isEmpty()) {
+                ivProfile.setImageDrawable(null);
+            } else {
+                loadImage(avatarUrl, ivProfile);
+            }
         }
 
         // Update User Greeting Name
@@ -1336,7 +1340,11 @@ public class HomeActivity extends AppCompatActivity {
             ivProfile.setPadding(6, 6, 6, 6);
 
             dialogSelectedAvatarPath = ThemeManager.getAvatarUrl(this);
-            loadImage(dialogSelectedAvatarPath, ivProfile);
+            if (dialogSelectedAvatarPath == null || dialogSelectedAvatarPath.isEmpty()) {
+                ivProfile.setImageDrawable(null);
+            } else {
+                loadImage(dialogSelectedAvatarPath, ivProfile);
+            }
             ivProfile.setImageTintList(null); // Clear tint
         }
 

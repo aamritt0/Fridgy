@@ -54,7 +54,7 @@ public class ThemeManager {
 
     public static String getAvatarUrl(Context context) {
         SharedPreferences prefs = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
-        return prefs.getString(KEY_AVATAR_URL, AVATARS.get(0));
+        return prefs.getString(KEY_AVATAR_URL, "");
     }
 
     public static void setAvatarUrl(Context context, String url) {
