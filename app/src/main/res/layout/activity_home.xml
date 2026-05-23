@@ -16,7 +16,7 @@
 
         <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
+            android:layout_height="match_parent"
             android:orientation="vertical"
             android:padding="24dp"
             android:clipChildren="false"
@@ -492,11 +492,12 @@
             <LinearLayout
                 android:id="@+id/layout_loading_state"
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="24dp"
+                android:layout_height="0dp"
+                android:layout_weight="1"
                 android:gravity="center"
                 android:orientation="vertical"
-                android:visibility="gone">
+                android:visibility="gone"
+                android:layout_marginTop="24dp">
 
                 <!-- Animated Emoji Circle -->
                 <FrameLayout

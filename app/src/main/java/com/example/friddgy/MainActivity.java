@@ -13,6 +13,7 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -73,18 +74,6 @@ public class MainActivity extends AppCompatActivity {
         });
 
         ThemeManager.ThemePreset theme = ThemeManager.getCurrentTheme(this);
-        int accentColor = Color.parseColor(theme.accentColor);
-
-        // 2. Set hero title and highlight "buoooono"
-        TextView heroTitle = findViewById(R.id.hero_title);
-        String fullText = "Il cibo sano\nè buoooono";
-        SpannableString spannableString = new SpannableString(fullText);
-
-        int start = fullText.indexOf("buoooono");
-        int end = start + "buoooono".length();
-        spannableString.setSpan(new ForegroundColorSpan(accentColor), start, end, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-
-        heroTitle.setText(spannableString);
 
         // 3. The hero image is now full-screen (no circular clipping needed)
         // hero_image_container is a zero-size placeholder kept for code compatibility
@@ -92,7 +81,6 @@ public class MainActivity extends AppCompatActivity {
 
         // 4. Iniziamo Button setup and transition
         Button btnGetStarted = findViewById(R.id.btn_get_started);
-        btnGetStarted.setBackgroundTintList(android.content.res.ColorStateList.valueOf(accentColor));
         
         View layoutSplash = findViewById(R.id.layout_splash);
         View layoutProfileSetup = findViewById(R.id.layout_profile_setup);
@@ -125,11 +113,6 @@ public class MainActivity extends AppCompatActivity {
                 }
             });
             imageContainer.setClipToOutline(true);
-
-            GradientDrawable border = new GradientDrawable();
-            border.setShape(GradientDrawable.OVAL);
-            border.setColor(accentColor);
-            imageContainer.setBackground(border);
         }
 
         if (ivProfile != null) {
@@ -147,7 +130,6 @@ public class MainActivity extends AppCompatActivity {
         }
 
         if (btnConfirmSetup != null) {
-            btnConfirmSetup.setBackgroundTintList(android.content.res.ColorStateList.valueOf(accentColor));
             ThemeManager.applyTouchScaleAnimation(btnConfirmSetup, () -> {
                 String name = etName != null ? etName.getText().toString().trim() : "";
                 if (name.isEmpty()) {
@@ -168,6 +150,100 @@ public class MainActivity extends AppCompatActivity {
                 startActivity(new Intent(MainActivity.this, HomeActivity.class));
                 finish();
             });
+        }
+
+        // 6. Theme swatches setup for onboarding
+        LinearLayout setupLayoutThemes = findViewById(R.id.setup_layout_themes);
+        final String[] selectedTheme = {ThemeManager.getCurrentTheme(this).name};
+        if (setupLayoutThemes != null) {
+            setupLayoutThemes.removeAllViews();
+            for (ThemeManager.ThemePreset preset : ThemeManager.PRESETS) {
+                View swatchView = new View(this);
+                int size = (int) (40 * getResources().getDisplayMetrics().density);
+                LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(size, size);
+                lp.setMargins(16, 8, 16, 8);
+                swatchView.setLayoutParams(lp);
+
+                GradientDrawable gd = new GradientDrawable();
+                gd.setShape(GradientDrawable.OVAL);
+                gd.setColor(Color.parseColor(preset.accentColor));
+
+                if (preset.name.equals(selectedTheme[0])) {
+                    gd.setStroke(6, Color.WHITE);
+                } else {
+                    gd.setStroke(2, Color.parseColor("#444444"));
+                }
+                swatchView.setBackground(gd);
+
+                swatchView.setOnClickListener(v -> {
+                    selectedTheme[0] = preset.name;
+                    ThemeManager.setCurrentTheme(MainActivity.this, preset.name);
+                    applySetupAccentTheme();
+
+                    for (int i = 0; i < setupLayoutThemes.getChildCount(); i++) {
+                        View child = setupLayoutThemes.getChildAt(i);
+                        ThemeManager.ThemePreset p = ThemeManager.PRESETS.get(i);
+                        GradientDrawable childGd = (GradientDrawable) child.getBackground();
+                        if (childGd != null) {
+                            if (p.name.equals(selectedTheme[0])) {
+                                childGd.setStroke(6, Color.WHITE);
+                            } else {
+                                childGd.setStroke(2, Color.parseColor("#444444"));
+                            }
+                        }
+                    }
+                });
+
+                setupLayoutThemes.addView(swatchView);
+            }
+        }
+
+        // Apply initially selected theme accent to setup controls
+        applySetupAccentTheme();
+    }
+
+    private void applySetupAccentTheme() {
+        ThemeManager.ThemePreset theme = ThemeManager.getCurrentTheme(this);
+        int accentColor = Color.parseColor(theme.accentColor);
+
+        // 1. Hero title highlight "buoooono"
+        TextView heroTitle = findViewById(R.id.hero_title);
+        if (heroTitle != null) {
+            String fullText = "Il cibo sano\nè buoooono";
+            SpannableString spannableString = new SpannableString(fullText);
+            int start = fullText.indexOf("buoooono");
+            if (start != -1) {
+                int end = start + "buoooono".length();
+                spannableString.setSpan(new ForegroundColorSpan(accentColor), start, end, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                heroTitle.setText(spannableString);
+            }
+        }
+
+        // 2. Iniziamo Button tint
+        Button btnGetStarted = findViewById(R.id.btn_get_started);
+        if (btnGetStarted != null) {
+            btnGetStarted.setBackgroundTintList(android.content.res.ColorStateList.valueOf(accentColor));
+        }
+
+        // 3. Confirm Setup Button tint
+        Button btnConfirmSetup = findViewById(R.id.btn_confirm_setup);
+        if (btnConfirmSetup != null) {
+            btnConfirmSetup.setBackgroundTintList(android.content.res.ColorStateList.valueOf(accentColor));
+        }
+
+        // 4. Setup Profile Image Container border color
+        View imageContainer = findViewById(R.id.setup_profile_image_container);
+        if (imageContainer != null) {
+            GradientDrawable border = new GradientDrawable();
+            border.setShape(GradientDrawable.OVAL);
+            border.setColor(accentColor);
+            imageContainer.setBackground(border);
+        }
+
+        // 5. Setup Edit Badge Container tint
+        View setupBadgeContainer = findViewById(R.id.setup_badge_container);
+        if (setupBadgeContainer != null) {
+            setupBadgeContainer.setBackgroundTintList(android.content.res.ColorStateList.valueOf(accentColor));
         }
     }
 

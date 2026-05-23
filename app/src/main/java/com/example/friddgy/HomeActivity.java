@@ -77,11 +77,48 @@ public class HomeActivity extends AppCompatActivity {
     private View layoutGeneratedHeader;
     private TextView tvGeneratedTitle;
     private View btnBackGenerated;
+    private String dialogSelectedAvatarPath = null;
+    private ImageView dialogIvProfile = null;
+
+    private final androidx.activity.result.ActivityResultLauncher<String> pickAvatarLauncher = registerForActivityResult(
+            new androidx.activity.result.contract.ActivityResultContracts.GetContent(),
+            uri -> {
+                if (uri != null) {
+                    String savedPath = saveCustomAvatar(uri);
+                    if (savedPath != null) {
+                        dialogSelectedAvatarPath = savedPath;
+                        if (dialogIvProfile != null) {
+                            dialogIvProfile.setImageURI(android.net.Uri.fromFile(new java.io.File(savedPath)));
+                            dialogIvProfile.setScaleType(ImageView.ScaleType.CENTER_CROP);
+                            dialogIvProfile.setImageTintList(null); // Clear camera icon tint
+                        }
+                    }
+                }
+            }
+    );
+
+    private String saveCustomAvatar(android.net.Uri uri) {
+        try {
+            java.io.InputStream in = getContentResolver().openInputStream(uri);
+            java.io.File file = new java.io.File(getFilesDir(), "profile_picture_custom.jpg");
+            java.io.OutputStream out = new java.io.FileOutputStream(file);
+            byte[] buf = new byte[1024];
+            int len;
+            while ((len = in.read(buf)) > 0) {
+                out.write(buf, 0, len);
+            }
+            out.close();
+            in.close();
+            return file.getAbsolutePath();
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
+
     private android.os.Handler loadingHandler = new android.os.Handler(android.os.Looper.getMainLooper());
     private Runnable loadingRunnable;
-    // Guard: prevents updateRecipesUI from flickering content while loading screen is active
     private boolean isLoadingActive = false;
-    // Guard: true while the generated-recipes view is on screen; suppresses onResume re-populating recents
     private boolean isGeneratedViewActive = false;
 
     @Override
@@ -1221,11 +1258,9 @@ public class HomeActivity extends AppCompatActivity {
         }
 
         LinearLayout layoutThemes = dialogView.findViewById(R.id.dialog_layout_themes);
-        LinearLayout layoutAvatars = dialogView.findViewById(R.id.dialog_layout_avatars);
 
         // Pre-fetch choices
         final String[] selectedTheme = {ThemeManager.getCurrentTheme(this).name};
-        final String[] selectedAvatar = {ThemeManager.getAvatarUrl(this)};
 
         // Populate Theme choices
         layoutThemes.removeAllViews();
@@ -1266,64 +1301,58 @@ public class HomeActivity extends AppCompatActivity {
             layoutThemes.addView(swatchView);
         }
 
-        // Populate Avatar choices
-        List<String> avatarOptions = new ArrayList<>(ThemeManager.AVATARS);
-        java.io.File customAvatarFile = new java.io.File(getFilesDir(), "profile_picture.jpg");
-        if (customAvatarFile.exists()) {
-            String customPath = customAvatarFile.getAbsolutePath();
-            avatarOptions.add(0, customPath);
-        }
+        // Setup Custom Avatar UI logic in Dialog
+        View imageContainer = dialogView.findViewById(R.id.dialog_profile_image_container);
+        ImageView ivProfile = dialogView.findViewById(R.id.dialog_iv_profile);
+        View btnPickImage = dialogView.findViewById(R.id.dialog_btn_pick_image);
+        View badgeContainer = dialogView.findViewById(R.id.dialog_badge_container);
 
-        layoutAvatars.removeAllViews();
-        for (String url : avatarOptions) {
-            ImageView avatarView = new ImageView(this);
-            int size = (int) (64 * getResources().getDisplayMetrics().density);
-            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(size, size);
-            lp.setMargins(12, 8, 12, 8);
-            avatarView.setLayoutParams(lp);
-            
-            avatarView.setBackgroundResource(R.drawable.circle_shape_border);
-            avatarView.setOutlineProvider(new android.view.ViewOutlineProvider() {
+        ThemeManager.ThemePreset currentActiveTheme = ThemeManager.getCurrentTheme(this);
+        int currentAccentColor = Color.parseColor(currentActiveTheme.accentColor);
+
+        if (imageContainer != null) {
+            imageContainer.setOutlineProvider(new android.view.ViewOutlineProvider() {
                 @Override
                 public void getOutline(View view, android.graphics.Outline outline) {
                     outline.setOval(0, 0, view.getWidth(), view.getHeight());
                 }
             });
-            avatarView.setClipToOutline(true);
+            imageContainer.setClipToOutline(true);
 
-            if (url.equals(selectedAvatar[0])) {
-                avatarView.setAlpha(1.0f);
-                avatarView.setPadding(6, 6, 6, 6);
-            } else {
-                avatarView.setAlpha(0.6f);
-                avatarView.setPadding(0, 0, 0, 0);
-            }
+            GradientDrawable border = new GradientDrawable();
+            border.setShape(GradientDrawable.OVAL);
+            border.setColor(currentAccentColor);
+            imageContainer.setBackground(border);
+        }
 
-            loadImage(url, avatarView);
-
-            avatarView.setOnClickListener(v -> {
-                selectedAvatar[0] = url;
-                for (int i = 0; i < layoutAvatars.getChildCount(); i++) {
-                    ImageView child = (ImageView) layoutAvatars.getChildAt(i);
-                    String u = avatarOptions.get(i);
-                    if (u.equals(selectedAvatar[0])) {
-                        child.setAlpha(1.0f);
-                        child.setPadding(6, 6, 6, 6);
-                    } else {
-                        child.setAlpha(0.6f);
-                        child.setPadding(0, 0, 0, 0);
-                    }
+        if (ivProfile != null) {
+            ivProfile.setOutlineProvider(new android.view.ViewOutlineProvider() {
+                @Override
+                public void getOutline(View view, android.graphics.Outline outline) {
+                    outline.setOval(0, 0, view.getWidth(), view.getHeight());
                 }
             });
+            ivProfile.setClipToOutline(true);
+            ivProfile.setPadding(6, 6, 6, 6);
 
-            layoutAvatars.addView(avatarView);
+            dialogSelectedAvatarPath = ThemeManager.getAvatarUrl(this);
+            loadImage(dialogSelectedAvatarPath, ivProfile);
+            ivProfile.setImageTintList(null); // Clear tint
+        }
+
+        if (badgeContainer != null) {
+            badgeContainer.setBackgroundTintList(ColorStateList.valueOf(currentAccentColor));
+        }
+
+        dialogIvProfile = ivProfile;
+        if (btnPickImage != null) {
+            btnPickImage.setOnClickListener(v -> pickAvatarLauncher.launch("image/*"));
         }
 
         dialogView.findViewById(R.id.dialog_btn_cancel).setOnClickListener(v -> dialog.dismiss());
         
         Button btnApply = dialogView.findViewById(R.id.dialog_btn_apply);
-        ThemeManager.ThemePreset activeTheme = ThemeManager.getCurrentTheme(this);
-        btnApply.setBackgroundTintList(android.content.res.ColorStateList.valueOf(Color.parseColor(activeTheme.accentColor)));
+        btnApply.setBackgroundTintList(android.content.res.ColorStateList.valueOf(currentAccentColor));
 
         btnApply.setOnClickListener(v -> {
             String name = etName.getText().toString().trim();
@@ -1331,7 +1360,31 @@ public class HomeActivity extends AppCompatActivity {
                 ThemeManager.setUserName(HomeActivity.this, name);
             }
             ThemeManager.setCurrentTheme(HomeActivity.this, selectedTheme[0]);
-            ThemeManager.setAvatarUrl(HomeActivity.this, selectedAvatar[0]);
+
+            if (dialogSelectedAvatarPath != null) {
+                if (dialogSelectedAvatarPath.contains("profile_picture_custom.jpg")) {
+                    try {
+                        java.io.File src = new java.io.File(dialogSelectedAvatarPath);
+                        java.io.File dest = new java.io.File(getFilesDir(), "profile_picture.jpg");
+                        if (src.exists()) {
+                            java.io.FileInputStream in = new java.io.FileInputStream(src);
+                            java.io.FileOutputStream out = new java.io.FileOutputStream(dest);
+                            byte[] buf = new byte[1024];
+                            int len;
+                            while ((len = in.read(buf)) > 0) {
+                                out.write(buf, 0, len);
+                            }
+                            in.close();
+                            out.close();
+                            ThemeManager.setAvatarUrl(HomeActivity.this, dest.getAbsolutePath());
+                        }
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                } else {
+                    ThemeManager.setAvatarUrl(HomeActivity.this, dialogSelectedAvatarPath);
+                }
+            }
 
             if (etApiKey != null) {
                 String apiKey = etApiKey.getText().toString().trim();
@@ -1341,7 +1394,12 @@ public class HomeActivity extends AppCompatActivity {
             applyCustomizations();
             dialog.dismiss();
             
-            Toast.makeText(HomeActivity.this, "Customizations applied!", Toast.LENGTH_SHORT).show();
+            Toast.makeText(HomeActivity.this, "Personalizzazioni applicate!", Toast.LENGTH_SHORT).show();
+        });
+
+        dialog.setOnDismissListener(d -> {
+            dialogIvProfile = null;
+            dialogSelectedAvatarPath = null;
         });
 
         dialog.show();

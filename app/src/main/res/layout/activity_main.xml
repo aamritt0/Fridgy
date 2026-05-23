@@ -135,6 +135,7 @@
 
             <!-- Small edit badge at bottom right -->
             <FrameLayout
+                android:id="@+id/setup_badge_container"
                 android:layout_width="36dp"
                 android:layout_height="36dp"
                 android:layout_gravity="bottom|end"
@@ -159,7 +160,7 @@
             android:gravity="center_vertical"
             android:orientation="horizontal"
             android:paddingHorizontal="16dp"
-            android:layout_marginBottom="40dp">
+            android:layout_marginBottom="24dp">
 
             <ImageView
                 android:layout_width="24dp"
@@ -181,6 +182,33 @@
                 android:inputType="textPersonName|textCapSentences"
                 android:textSize="16sp" />
         </LinearLayout>
+
+        <!-- Palette Selector -->
+        <TextView
+            android:id="@+id/setup_tv_palette_label"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Seleziona Tavolozza Colori"
+            android:textColor="@color/text_secondary"
+            android:textSize="12sp"
+            android:textStyle="bold"
+            android:gravity="start"
+            android:layout_marginBottom="8dp"/>
+
+        <HorizontalScrollView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:scrollbars="none"
+            android:layout_marginBottom="32dp">
+
+            <LinearLayout
+                android:id="@+id/setup_layout_themes"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:paddingVertical="4dp"/>
+        </HorizontalScrollView>
 
         <!-- Submit Button -->
         <com.google.android.material.button.MaterialButton

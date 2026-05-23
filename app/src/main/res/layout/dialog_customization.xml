@@ -5,17 +5,64 @@
     android:layout_height="wrap_content"
     android:orientation="vertical"
     android:padding="24dp"
-    android:background="@color/background_card"
-    android:clipToPadding="false">
+    android:background="@drawable/card_bg"
+    android:backgroundTint="@color/background_card"
+    android:clipToPadding="false"
+    android:gravity="center_horizontal">
 
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="Personalizza lo Stile"
         android:textColor="@color/white"
-        android:textSize="20sp"
+        android:textSize="22sp"
         android:textStyle="bold"
-        android:layout_marginBottom="20dp"/>
+        android:gravity="center"
+        android:layout_marginBottom="24dp"/>
+
+    <!-- Circular Image Selector (Custom Profile Picture) -->
+    <FrameLayout
+        android:id="@+id/dialog_btn_pick_image"
+        android:layout_width="120dp"
+        android:layout_height="120dp"
+        android:layout_marginBottom="24dp"
+        android:clickable="true"
+        android:focusable="true">
+
+        <!-- Profile image container with outline crop -->
+        <FrameLayout
+            android:id="@+id/dialog_profile_image_container"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:padding="4dp">
+
+            <ImageView
+                android:id="@+id/dialog_iv_profile"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:scaleType="centerCrop"
+                android:src="@android:drawable/ic_menu_camera"
+                android:tint="@color/text_secondary" />
+        </FrameLayout>
+
+        <!-- Small edit badge at bottom right -->
+        <FrameLayout
+            android:id="@+id/dialog_badge_container"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:layout_gravity="bottom|end"
+            android:background="@drawable/circle_shape"
+            android:backgroundTint="@color/accent_color"
+            android:elevation="2dp">
+
+            <ImageView
+                android:layout_width="18dp"
+                android:layout_height="18dp"
+                android:layout_gravity="center"
+                android:src="@android:drawable/ic_menu_edit"
+                android:tint="@color/background_color" />
+        </FrameLayout>
+    </FrameLayout>
 
     <TextView
         android:layout_width="match_parent"
@@ -26,18 +73,33 @@
         android:textStyle="bold"
         android:layout_marginBottom="8dp"/>
 
-    <EditText
-        android:id="@+id/dialog_et_name"
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="48dp"
         android:background="@drawable/search_bg"
-        android:hint="Inserisci il tuo nome"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
         android:paddingHorizontal="16dp"
-        android:singleLine="true"
-        android:textColor="@color/white"
-        android:textColorHint="@color/text_secondary"
-        android:textSize="14sp"
-        android:layout_marginBottom="24dp"/>
+        android:layout_marginBottom="20dp">
+
+        <ImageView
+            android:layout_width="20dp"
+            android:layout_height="20dp"
+            android:src="@android:drawable/ic_menu_myplaces"
+            android:tint="@color/text_secondary" />
+
+        <EditText
+            android:id="@+id/dialog_et_name"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="@null"
+            android:hint="Inserisci il tuo nome"
+            android:paddingHorizontal="12dp"
+            android:singleLine="true"
+            android:textColor="@color/white"
+            android:textColorHint="@color/text_secondary"
+            android:textSize="14sp" />
+    </LinearLayout>
 
     <TextView
         android:layout_width="match_parent"
@@ -48,18 +110,33 @@
         android:textStyle="bold"
         android:layout_marginBottom="8dp"/>
 
-    <EditText
-        android:id="@+id/dialog_et_api_key"
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="48dp"
         android:background="@drawable/search_bg"
-        android:hint="Inserisci la tua API key"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
         android:paddingHorizontal="16dp"
-        android:singleLine="true"
-        android:textColor="@color/white"
-        android:textColorHint="@color/text_secondary"
-        android:textSize="14sp"
-        android:layout_marginBottom="24dp"/>
+        android:layout_marginBottom="24dp">
+
+        <ImageView
+            android:layout_width="20dp"
+            android:layout_height="20dp"
+            android:src="@android:drawable/ic_lock_lock"
+            android:tint="@color/text_secondary" />
+
+        <EditText
+            android:id="@+id/dialog_et_api_key"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="@null"
+            android:hint="Inserisci la tua API key"
+            android:paddingHorizontal="12dp"
+            android:singleLine="true"
+            android:textColor="@color/white"
+            android:textColorHint="@color/text_secondary"
+            android:textSize="14sp" />
+    </LinearLayout>
 
     <TextView
         android:layout_width="match_parent"
@@ -70,36 +147,19 @@
         android:textStyle="bold"
         android:layout_marginBottom="8dp"/>
 
-    <LinearLayout
-        android:id="@+id/dialog_layout_themes"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:gravity="center"
-        android:layout_marginBottom="24dp">
-    </LinearLayout>
-
-    <TextView
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="Seleziona Avatar Profilo"
-        android:textColor="@color/text_secondary"
-        android:textSize="12sp"
-        android:textStyle="bold"
-        android:layout_marginBottom="12dp"/>
-
     <HorizontalScrollView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:scrollbars="none"
         android:layout_marginBottom="24dp">
-        
+
         <LinearLayout
-            android:id="@+id/dialog_layout_avatars"
+            android:id="@+id/dialog_layout_themes"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
-            android:gravity="center_vertical"/>
+            android:gravity="center_vertical"
+            android:paddingVertical="4dp"/>
     </HorizontalScrollView>
 
     <LinearLayout
@@ -118,7 +178,9 @@
             android:text="Annulla"
             android:textColor="@color/text_secondary"
             android:textSize="15sp"
-            android:textStyle="bold"/>
+            android:textStyle="bold"
+            android:clickable="true"
+            android:focusable="true"/>
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/dialog_btn_apply"
