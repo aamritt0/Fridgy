@@ -1,4 +1,4 @@
-# 🍽️ Friddgy
+# 🍽️ Fridgy
 
 A recipe discovery Android app that uses the **Google Gemini AI** to generate personalised recipes from whatever ingredients you have on hand, powered by the **MealDB** API for browsing curated meals by category.
 
@@ -37,8 +37,8 @@ A recipe discovery Android app that uses the **Google Gemini AI** to generate pe
 ### 1. Clone the repository
 
 ```bash
-git clone https://github.com/your-username/Friddgy.git
-cd Friddgy
+git clone https://github.com/your-username/Fridgy.git
+cd Fridgy
 ```
 
 ### 2. Get a Gemini API key

@@ -51,7 +51,11 @@ public class DetailActivity extends AppCompatActivity {
             return insets;
         });
 
-        recipe = (Recipe) getIntent().getSerializableExtra("RECIPE");
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+            recipe = getIntent().getSerializableExtra("RECIPE", Recipe.class);
+        } else {
+            recipe = (Recipe) getIntent().getSerializableExtra("RECIPE");
+        }
         if (recipe == null) {
             finish();
             return;
@@ -123,7 +127,7 @@ public class DetailActivity extends AppCompatActivity {
         int accentColor = Color.parseColor(theme.accentColor);
         int secondaryColor = Color.parseColor(theme.secondaryColor);
 
-        // Dynamically style badge backgrounds
+        // imposta il colore dello sfondo dei badge
         if (tvTimeBadge.getParent() instanceof View) {
             ((View) tvTimeBadge.getParent()).setBackgroundTintList(ColorStateList.valueOf(secondaryColor));
         }
@@ -140,11 +144,11 @@ public class DetailActivity extends AppCompatActivity {
         tvFats.setText(recipe.getFats() + " g");
         tvCarbs.setText(recipe.getCarbs() + " g");
 
-        // Load image
+        // carica l'immagine
         ImageView ivDetail = findViewById(R.id.detail_image);
         loadImage(recipe.getImageUrl(), ivDetail);
 
-        // Ingredients
+        // mostra la lista degli ingredienti
         LinearLayout containerIngredients = findViewById(R.id.container_detail_ingredients);
         LayoutInflater inflater = LayoutInflater.from(this);
         for (Ingredient ingredient : recipe.getIngredients()) {
@@ -156,7 +160,7 @@ public class DetailActivity extends AppCompatActivity {
             containerIngredients.addView(itemView);
         }
 
-        // Instructions
+        // mostra la lista delle istruzioni
         LinearLayout containerInstructions = findViewById(R.id.container_instructions);
         for (int i = 0; i < recipe.getSteps().size(); i++) {
             View itemView = inflater.inflate(R.layout.item_instruction_step, containerInstructions, false);
@@ -165,14 +169,14 @@ public class DetailActivity extends AppCompatActivity {
             tvStepNumber.setText(String.valueOf(i + 1));
             tvStepText.setText(recipe.getSteps().get(i));
 
-            // Dynamic Step styling
+            // stile dinamico per i passaggi
             tvStepNumber.setTextColor(accentColor);
             tvStepNumber.setBackgroundTintList(ColorStateList.valueOf(secondaryColor));
 
             containerInstructions.addView(itemView);
         }
 
-        // Tips
+        // suggerimenti
         if (recipe.getTips() != null && !recipe.getTips().isEmpty()) {
             View containerTip = findViewById(R.id.container_tip);
             containerTip.setVisibility(View.VISIBLE);
@@ -189,17 +193,42 @@ public class DetailActivity extends AppCompatActivity {
     }
 
     private void loadImage(String urlStr, ImageView imageView) {
+        if (urlStr == null || urlStr.isEmpty()) {
+            imageView.setImageResource(android.R.drawable.ic_menu_gallery);
+            return;
+        }
+        // gestisce i file locali direttamente sul thread principale
+        if (!urlStr.startsWith("http://") && !urlStr.startsWith("https://")) {
+            java.io.File file = new java.io.File(urlStr);
+            if (file.exists()) {
+                imageView.setImageBitmap(BitmapFactory.decodeFile(file.getAbsolutePath()));
+            } else {
+                imageView.setImageResource(android.R.drawable.ic_menu_gallery);
+            }
+            return;
+        }
+        imageView.setImageResource(android.R.drawable.ic_menu_gallery); // segnaposto
         new Thread(() -> {
+            HttpURLConnection connection = null;
             try {
                 URL url = new URL(urlStr);
-                HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+                connection = (HttpURLConnection) url.openConnection();
                 connection.setDoInput(true);
+                connection.setConnectTimeout(15000);
+                connection.setReadTimeout(15000);
                 connection.connect();
                 InputStream input = connection.getInputStream();
                 Bitmap bitmap = BitmapFactory.decodeStream(input);
-                runOnUiThread(() -> imageView.setImageBitmap(bitmap));
+                input.close();
+                if (!isFinishing() && !isDestroyed() && bitmap != null) {
+                    runOnUiThread(() -> imageView.setImageBitmap(bitmap));
+                }
             } catch (Exception e) {
                 e.printStackTrace();
+            } finally {
+                if (connection != null) {
+                    connection.disconnect();
+                }
             }
         }).start();
     }

@@ -6,35 +6,43 @@
     android:layout_height="match_parent"
     android:background="@color/background_color">
 
-    <!-- SPLASH SCREEN VIEW -->
-    <FrameLayout
+    <!-- schermata iniziale di splash -->
+    <LinearLayout
         android:id="@+id/layout_splash"
         android:layout_width="match_parent"
-        android:layout_height="match_parent">
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:background="@color/background_color">
 
-        <!-- Full-screen food image background -->
-        <ImageView
-            android:id="@+id/hero_image"
+        <!-- contenitore foto nella metà superiore -->
+        <FrameLayout
             android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:src="@drawable/welcome_food"
-            android:scaleType="centerCrop" />
+            android:layout_height="0dp"
+            android:layout_weight="1.1">
 
-        <!-- Dark gradient overlay from bottom -->
-        <View
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:background="@drawable/gradient_bottom" />
+            <ImageView
+                android:id="@+id/hero_image"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:src="@drawable/welcome_food"
+                android:scaleType="centerCrop" />
 
-        <!-- Content overlaid at bottom -->
+            <!-- sfumatura scura sul fondo dell'immagine -->
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="160dp"
+                android:layout_gravity="bottom"
+                android:background="@drawable/gradient_bottom" />
+        </FrameLayout>
+
+        <!-- contenuto in basso -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_gravity="bottom"
             android:orientation="vertical"
             android:paddingHorizontal="32dp"
             android:paddingBottom="56dp"
-            android:paddingTop="120dp">
+            android:paddingTop="24dp">
 
             <TextView
                 android:id="@+id/hero_title"
@@ -56,7 +64,7 @@
                 android:textSize="16sp"
                 android:lineSpacingMultiplier="1.2" />
 
-            <!-- Placeholder to maintain the FrameLayout reference -->
+            <!-- segnaposto per compatibilità layout -->
             <FrameLayout
                 android:id="@+id/hero_image_container"
                 android:layout_width="0dp"
@@ -76,9 +84,9 @@
                 android:textSize="18sp"
                 android:textStyle="bold" />
         </LinearLayout>
-    </FrameLayout>
+    </LinearLayout>
 
-    <!-- PROFILE SETUP VIEW (hidden initially) -->
+    <!-- schermata impostazione profilo -->
     <LinearLayout
         android:id="@+id/layout_profile_setup"
         android:layout_width="match_parent"
@@ -88,7 +96,7 @@
         android:padding="32dp"
         android:gravity="center">
 
-        <!-- Title -->
+        <!-- titolo -->
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
@@ -108,7 +116,7 @@
             android:gravity="center"
             android:layout_marginBottom="40dp" />
 
-        <!-- Circular Image Selector -->
+        <!-- selettore immagine profilo -->
         <FrameLayout
             android:id="@+id/btn_pick_image"
             android:layout_width="140dp"
@@ -117,23 +125,24 @@
             android:clickable="true"
             android:focusable="true">
 
-            <!-- Profile image container with outline crop -->
+            <!-- contenitore per l'avatar ritagliato -->
             <FrameLayout
                 android:id="@+id/setup_profile_image_container"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
                 android:padding="4dp">
 
-                <ImageView
+                <com.google.android.material.imageview.ShapeableImageView
                     android:id="@+id/setup_iv_profile"
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
                     android:scaleType="centerInside"
                     android:src="@android:drawable/ic_menu_camera"
-                    android:tint="@color/text_secondary" />
+                    app:tint="@color/text_secondary"
+                    app:shapeAppearanceOverlay="@style/CircleImageView" />
             </FrameLayout>
 
-            <!-- Small edit badge at bottom right -->
+            <!-- badge per la modifica della foto -->
             <FrameLayout
                 android:id="@+id/setup_badge_container"
                 android:layout_width="36dp"
@@ -148,42 +157,39 @@
                     android:layout_height="20dp"
                     android:layout_gravity="center"
                     android:src="@android:drawable/ic_menu_edit"
-                    android:tint="@color/background_color" />
+                    app:tint="@color/background_color" />
             </FrameLayout>
         </FrameLayout>
 
-        <!-- Username Input -->
-        <LinearLayout
+        <!-- inserimento nome utente -->
+        <com.google.android.material.textfield.TextInputLayout
+            android:id="@+id/setup_name_layout"
             android:layout_width="match_parent"
-            android:layout_height="56dp"
-            android:background="@drawable/search_bg"
-            android:gravity="center_vertical"
-            android:orientation="horizontal"
-            android:paddingHorizontal="16dp"
-            android:layout_marginBottom="24dp">
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="24dp"
+            android:hint="Il tuo nome..."
+            style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+            app:startIconDrawable="@android:drawable/ic_menu_myplaces"
+            app:startIconTint="@color/text_secondary"
+            app:boxStrokeColor="@color/accent_color"
+            app:hintTextColor="@color/accent_color"
+            app:boxCornerRadiusTopStart="16dp"
+            app:boxCornerRadiusTopEnd="16dp"
+            app:boxCornerRadiusBottomStart="16dp"
+            app:boxCornerRadiusBottomEnd="16dp"
+            android:textColorHint="@color/text_secondary">
 
-            <ImageView
-                android:layout_width="24dp"
-                android:layout_height="24dp"
-                android:src="@android:drawable/ic_menu_myplaces"
-                android:tint="@color/text_secondary" />
-
-            <EditText
+            <com.google.android.material.textfield.TextInputEditText
                 android:id="@+id/setup_et_name"
-                android:layout_width="0dp"
-                android:layout_height="match_parent"
-                android:layout_weight="1"
-                android:background="@null"
-                android:hint="Il tuo nome..."
-                android:paddingHorizontal="12dp"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
                 android:singleLine="true"
                 android:textColor="@color/white"
-                android:textColorHint="@color/text_secondary"
                 android:inputType="textPersonName|textCapSentences"
                 android:textSize="16sp" />
-        </LinearLayout>
+        </com.google.android.material.textfield.TextInputLayout>
 
-        <!-- Palette Selector -->
+        <!-- selettore del tema di colore -->
         <TextView
             android:id="@+id/setup_tv_palette_label"
             android:layout_width="match_parent"
@@ -210,7 +216,7 @@
                 android:paddingVertical="4dp"/>
         </HorizontalScrollView>
 
-        <!-- Submit Button -->
+        <!-- pulsante di conferma -->
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btn_confirm_setup"
             android:layout_width="match_parent"
@@ -226,7 +232,7 @@
 
     </LinearLayout>
 
-    <!-- API KEY SETUP VIEW (hidden initially) -->
+    <!-- schermata configurazione chiave api -->
     <LinearLayout
         android:id="@+id/layout_api_setup"
         android:layout_width="match_parent"
@@ -236,7 +242,7 @@
         android:padding="32dp"
         android:gravity="center">
 
-        <!-- Title -->
+        <!-- titolo -->
         <TextView
             android:id="@+id/setup_api_title"
             android:layout_width="wrap_content"
@@ -251,44 +257,43 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Friddgy genera ricette con l'Intelligenza Artificiale. Per iniziare, inserisci la tua API Key di Gemini."
+            android:text="Fridgy genera ricette con l'Intelligenza Artificiale. Per iniziare, inserisci la tua API Key di Gemini."
             android:textColor="@color/text_secondary"
             android:textSize="15sp"
             android:gravity="center"
             android:layout_marginBottom="32dp" />
 
-        <!-- API Key Input -->
-        <LinearLayout
+        <!-- inserimento chiave api -->
+        <com.google.android.material.textfield.TextInputLayout
+            android:id="@+id/setup_api_key_layout"
             android:layout_width="match_parent"
-            android:layout_height="56dp"
-            android:background="@drawable/search_bg"
-            android:gravity="center_vertical"
-            android:orientation="horizontal"
-            android:paddingHorizontal="16dp"
-            android:layout_marginBottom="20dp">
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="20dp"
+            android:hint="API Key di Gemini..."
+            style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+            app:startIconDrawable="@drawable/ic_key"
+            app:startIconTint="@color/text_secondary"
+            app:boxStrokeColor="@color/accent_color"
+            app:hintTextColor="@color/accent_color"
+            app:boxCornerRadiusTopStart="16dp"
+            app:boxCornerRadiusTopEnd="16dp"
+            app:boxCornerRadiusBottomStart="16dp"
+            app:boxCornerRadiusBottomEnd="16dp"
+            android:textColorHint="@color/text_secondary"
+            app:endIconMode="password_toggle"
+            app:endIconTint="@color/text_secondary">
 
-            <ImageView
-                android:layout_width="24dp"
-                android:layout_height="24dp"
-                android:src="@drawable/ic_key"
-                android:tint="@color/text_secondary" />
-
-            <EditText
+            <com.google.android.material.textfield.TextInputEditText
                 android:id="@+id/setup_et_api_key"
-                android:layout_width="0dp"
-                android:layout_height="match_parent"
-                android:layout_weight="1"
-                android:background="@null"
-                android:hint="API Key di Gemini..."
-                android:paddingHorizontal="12dp"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
                 android:singleLine="true"
                 android:textColor="@color/white"
-                android:textColorHint="@color/text_secondary"
                 android:inputType="textPassword"
                 android:textSize="16sp" />
-        </LinearLayout>
+        </com.google.android.material.textfield.TextInputLayout>
 
-        <!-- Mini Tutorial Card -->
+        <!-- scheda informativa per ottenere la chiave api -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -349,7 +354,7 @@
                 android:padding="8dp" />
         </LinearLayout>
 
-        <!-- Submit Button -->
+        <!-- pulsante di conferma -->
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btn_finish_setup"
             android:layout_width="match_parent"
@@ -364,7 +369,7 @@
             android:textStyle="bold"
             android:layout_marginBottom="16dp" />
 
-        <!-- Skip API Key Button -->
+        <!-- pulsante per saltare la configurazione api -->
         <TextView
             android:id="@+id/btn_skip_api_key"
             android:layout_width="wrap_content"

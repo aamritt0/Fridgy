@@ -45,7 +45,7 @@ public class MainActivity extends AppCompatActivity {
                         if (ivProfile != null) {
                             ivProfile.setImageURI(Uri.fromFile(new File(savedPath)));
                             ivProfile.setScaleType(ImageView.ScaleType.CENTER_CROP);
-                            ivProfile.setImageTintList(null); // Clear camera icon tint
+                            ivProfile.setImageTintList(null); // rimuove la tinta dell'icona fotocamera
                         }
                     }
                 }
@@ -54,7 +54,9 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-        // 1. First-launch check
+        super.onCreate(savedInstanceState);
+
+        // controllo se è il primo avvio dell'app
         SharedPreferences prefs = getSharedPreferences("friddgy_custom_prefs", MODE_PRIVATE);
         boolean isFirstLaunch = prefs.getBoolean("is_first_launch", true);
         if (!isFirstLaunch) {
@@ -62,8 +64,6 @@ public class MainActivity extends AppCompatActivity {
             finish();
             return;
         }
-
-        super.onCreate(savedInstanceState);
         EdgeToEdge.enable(this);
         setContentView(R.layout.activity_main);
 
@@ -75,11 +75,11 @@ public class MainActivity extends AppCompatActivity {
 
         ThemeManager.ThemePreset theme = ThemeManager.getCurrentTheme(this);
 
-        // 3. The hero image is now full-screen (no circular clipping needed)
-        // hero_image_container is a zero-size placeholder kept for code compatibility
+        // l'immagine hero è a schermo intero
+        // contenitore tenuto solo per compatibilità
         View heroContainer = findViewById(R.id.hero_image_container);
 
-        // 4. Iniziamo Button setup and transition
+        // configurazione del tasto inizia e transizione
         Button btnGetStarted = findViewById(R.id.btn_get_started);
         
         View layoutSplash = findViewById(R.id.layout_splash);
@@ -87,7 +87,7 @@ public class MainActivity extends AppCompatActivity {
 
         ThemeManager.applyTouchScaleAnimation(btnGetStarted, () -> {
             if (layoutSplash != null && layoutProfileSetup != null) {
-                // Smooth transition
+                // transizione fluida
                 layoutSplash.animate().alpha(0.0f).translationY(-50f).setDuration(300).withEndAction(() -> {
                     layoutSplash.setVisibility(View.GONE);
                     layoutProfileSetup.setVisibility(View.VISIBLE);
@@ -98,7 +98,7 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-        // 5. Setup Profile UI styling and dynamic accents
+        // configurazione interfaccia del profilo
         View imageContainer = findViewById(R.id.setup_profile_image_container);
         ImageView ivProfile = findViewById(R.id.setup_iv_profile);
         View btnPickImage = findViewById(R.id.btn_pick_image);
@@ -143,13 +143,13 @@ public class MainActivity extends AppCompatActivity {
                     return;
                 }
 
-                // Save name and avatar url in ThemeManager SharedPreferences
+                // salva nome e avatar nelle impostazioni
                 ThemeManager.setUserName(MainActivity.this, name);
                 if (selectedImageUriString != null) {
                     ThemeManager.setAvatarUrl(MainActivity.this, selectedImageUriString);
                 }
 
-                // Transition to API Key Setup screen
+                // passa alla schermata di configurazione delle api
                 if (layoutProfileSetup != null && layoutApiSetup != null) {
                     layoutProfileSetup.animate().alpha(0.0f).translationY(-50f).setDuration(300).withEndAction(() -> {
                         layoutProfileSetup.setVisibility(View.GONE);
@@ -162,7 +162,7 @@ public class MainActivity extends AppCompatActivity {
             });
         }
 
-        // Setup API Key listeners
+        // configurazione tasti per la chiave api
         if (btnGetApiKeyLink != null) {
             btnGetApiKeyLink.setOnClickListener(v -> {
                 Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse("https://aistudio.google.com/"));
@@ -178,13 +178,13 @@ public class MainActivity extends AppCompatActivity {
                     return;
                 }
 
-                // Save API key
+                // salva la chiave api
                 ThemeManager.setGeminiApiKey(MainActivity.this, apiKey);
 
-                // Mark first launch as complete
+                // segna il primo avvio come completato
                 prefs.edit().putBoolean("is_first_launch", false).apply();
 
-                // Open home and finish
+                // apre la home e chiude questa schermata
                 startActivity(new Intent(MainActivity.this, HomeActivity.class));
                 finish();
             });
@@ -192,19 +192,19 @@ public class MainActivity extends AppCompatActivity {
 
         if (btnSkipApiKey != null) {
             btnSkipApiKey.setOnClickListener(v -> {
-                // Clear or leave API key empty
+                // lascia vuota o pulisci la chiave api
                 ThemeManager.setGeminiApiKey(MainActivity.this, "");
 
-                // Mark first launch as complete
+                // segna il primo avvio come completato
                 prefs.edit().putBoolean("is_first_launch", false).apply();
 
-                // Open home and finish
+                // apre la home e chiude questa schermata
                 startActivity(new Intent(MainActivity.this, HomeActivity.class));
                 finish();
             });
         }
 
-        // 6. Theme swatches setup for onboarding
+        // configurazione dei selettori di tema per l'onboarding
         LinearLayout setupLayoutThemes = findViewById(R.id.setup_layout_themes);
         final String[] selectedTheme = {ThemeManager.getCurrentTheme(this).name};
         if (setupLayoutThemes != null) {
@@ -250,7 +250,7 @@ public class MainActivity extends AppCompatActivity {
             }
         }
 
-        // Apply initially selected theme accent to setup controls
+        // applica il tema selezionato ai controlli di configurazione
         applySetupAccentTheme();
     }
 
@@ -258,7 +258,7 @@ public class MainActivity extends AppCompatActivity {
         ThemeManager.ThemePreset theme = ThemeManager.getCurrentTheme(this);
         int accentColor = Color.parseColor(theme.accentColor);
 
-        // 1. Hero title highlight "buoooono"
+        // evidenzia la parola buoooono nel titolo
         TextView heroTitle = findViewById(R.id.hero_title);
         if (heroTitle != null) {
             String fullText = "Il cibo sano\nè buoooono";
@@ -271,19 +271,19 @@ public class MainActivity extends AppCompatActivity {
             }
         }
 
-        // 2. Iniziamo Button tint
+        // imposta il colore per il tasto inizia
         Button btnGetStarted = findViewById(R.id.btn_get_started);
         if (btnGetStarted != null) {
             btnGetStarted.setBackgroundTintList(android.content.res.ColorStateList.valueOf(accentColor));
         }
 
-        // 3. Confirm Setup Button tint
+        // imposta il colore per il tasto conferma
         Button btnConfirmSetup = findViewById(R.id.btn_confirm_setup);
         if (btnConfirmSetup != null) {
             btnConfirmSetup.setBackgroundTintList(android.content.res.ColorStateList.valueOf(accentColor));
         }
 
-        // 4. Setup Profile Image Container border color
+        // imposta il bordo per l'immagine di profilo
         View imageContainer = findViewById(R.id.setup_profile_image_container);
         if (imageContainer != null) {
             GradientDrawable border = new GradientDrawable();
@@ -292,13 +292,13 @@ public class MainActivity extends AppCompatActivity {
             imageContainer.setBackground(border);
         }
 
-        // 5. Setup Edit Badge Container tint
+        // imposta il colore del badge di modifica
         View setupBadgeContainer = findViewById(R.id.setup_badge_container);
         if (setupBadgeContainer != null) {
             setupBadgeContainer.setBackgroundTintList(android.content.res.ColorStateList.valueOf(accentColor));
         }
 
-        // 6. API Setup Elements
+        // elementi di configurazione api
         Button btnFinishSetup = findViewById(R.id.btn_finish_setup);
         if (btnFinishSetup != null) {
             btnFinishSetup.setBackgroundTintList(android.content.res.ColorStateList.valueOf(accentColor));
@@ -328,21 +328,25 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private String saveProfileImage(Uri uri) {
+        InputStream in = null;
+        OutputStream out = null;
         try {
-            InputStream in = getContentResolver().openInputStream(uri);
+            in = getContentResolver().openInputStream(uri);
+            if (in == null) return null;
             File file = new File(getFilesDir(), "profile_picture.jpg");
-            OutputStream out = new FileOutputStream(file);
-            byte[] buf = new byte[1024];
+            out = new FileOutputStream(file);
+            byte[] buf = new byte[4096];
             int len;
             while ((len = in.read(buf)) > 0) {
                 out.write(buf, 0, len);
             }
-            out.close();
-            in.close();
             return file.getAbsolutePath();
         } catch (Exception e) {
             e.printStackTrace();
             return null;
+        } finally {
+            try { if (out != null) out.close(); } catch (Exception ignored) {}
+            try { if (in != null) in.close(); } catch (Exception ignored) {}
         }
     }
 }

@@ -62,7 +62,7 @@ public class HomeActivity extends AppCompatActivity {
     private String activeTab = "Breakfast";
     private View catBreakfastView, catLunchView, catDinnerView, catDessertView, catSaladsView;
 
-    private LinearLayout linearIngredients;
+    private com.google.android.material.chip.ChipGroup linearIngredients;
     private View scrollIngredients;
     private Button btnGenerate;
     private ProgressBar progressBar;
@@ -229,10 +229,10 @@ public class HomeActivity extends AppCompatActivity {
         LayoutInflater inflater = LayoutInflater.from(this);
         for (String ingredient : currentIngredients) {
             View pillView = inflater.inflate(R.layout.item_ingredient_pill, linearIngredients, false);
-            TextView tvName = pillView.findViewById(R.id.tv_name);
-            tvName.setText(ingredient);
+            com.google.android.material.chip.Chip chip = (com.google.android.material.chip.Chip) pillView;
+            chip.setText(ingredient);
 
-            pillView.findViewById(R.id.btn_remove).setOnClickListener(v -> {
+            chip.setOnCloseIconClickListener(v -> {
                 currentIngredients.remove(ingredient);
                 updateIngredientsUI();
             });
@@ -244,7 +244,11 @@ public class HomeActivity extends AppCompatActivity {
     private void generateRecipesFromGemini() {
         if (currentIngredients.isEmpty()) return;
 
-        final String apiKey = ThemeManager.getGeminiApiKey(this);
+        String apiKeyVal = ThemeManager.getGeminiApiKey(this);
+        if (apiKeyVal == null || apiKeyVal.trim().isEmpty()) {
+            apiKeyVal = BuildConfig.GEMINI_API_KEY;
+        }
+        final String apiKey = apiKeyVal;
         if (apiKey == null || apiKey.trim().isEmpty()) {
             Toast.makeText(this, "Configura la tua API Key Gemini nelle impostazioni del profilo per sbloccare la generazione con l'IA.", Toast.LENGTH_LONG).show();
             return;
@@ -1629,7 +1633,149 @@ public class HomeActivity extends AppCompatActivity {
 
     private List<Recipe> translateRecipesToItalian(List<Recipe> recipes) {
         if (recipes == null || recipes.isEmpty()) return recipes;
+
+        String apiKey = ThemeManager.getGeminiApiKey(this);
+        if (apiKey == null || apiKey.trim().isEmpty()) {
+            apiKey = BuildConfig.GEMINI_API_KEY;
+        }
+
+        if (apiKey != null && !apiKey.trim().isEmpty()) {
+            try {
+                return translateRecipesWithGemini(recipes, apiKey);
+            } catch (Exception e) {
+                Log.e("GeminiTranslation", "Error translating with Gemini: " + e.getMessage());
+            }
+        }
         return translateRecipesWithMyMemory(recipes);
+    }
+
+    private List<Recipe> translateRecipesWithGemini(List<Recipe> recipes, String apiKey) throws Exception {
+        JSONArray arr = new JSONArray();
+        for (Recipe r : recipes) {
+            JSONObject obj = new JSONObject();
+            obj.put("id", r.getId());
+            obj.put("title", r.getTitle());
+            obj.put("description", r.getDescription());
+            obj.put("time", r.getTime());
+            obj.put("difficulty", r.getDifficulty());
+            obj.put("rating", r.getRating());
+            obj.put("proteins", r.getProteins());
+            obj.put("fats", r.getFats());
+            obj.put("carbs", r.getCarbs());
+            obj.put("tips", r.getTips());
+            obj.put("imageUrl", r.getImageUrl());
+
+            JSONArray ingArr = new JSONArray();
+            for (Ingredient ing : r.getIngredients()) {
+                JSONObject ingObj = new JSONObject();
+                ingObj.put("name", ing.getName());
+                ingObj.put("amount", ing.getAmount());
+                ingObj.put("emoji", ing.getEmoji());
+                ingArr.put(ingObj);
+            }
+            obj.put("ingredients", ingArr);
+
+            JSONArray stepArr = new JSONArray();
+            for (String step : r.getSteps()) {
+                stepArr.put(step);
+            }
+            obj.put("steps", stepArr);
+
+            arr.put(obj);
+        }
+
+        JSONObject requestBody = new JSONObject();
+        JSONArray contents = new JSONArray();
+        JSONObject content = new JSONObject();
+        JSONArray parts = new JSONArray();
+        JSONObject part = new JSONObject();
+
+        String prompt = "Translate the following recipes from English to Italian. " +
+                "Translate the 'title', 'description', 'tips' (if not empty), each entry in the 'steps' array, and the 'name' and 'amount' fields of each ingredient to Italian. " +
+                "Keep all other fields exactly as they are ('id', 'time', 'rating', 'proteins', 'fats', 'carbs', 'imageUrl', and ingredient 'emoji'). " +
+                "For the 'difficulty' field, translate 'Easy' to 'Facile', 'Medium' to 'Medio', and 'Hard' to 'Difficile'. " +
+                "IMPORTANT: Return ONLY a valid JSON array containing the translated recipes. Do not wrap it in markdown (like ```json), just return the raw JSON text.\n\n" +
+                arr.toString();
+
+        part.put("text", prompt);
+        parts.put(part);
+        content.put("parts", parts);
+        contents.put(content);
+        requestBody.put("contents", contents);
+
+        JSONObject generationConfig = new JSONObject();
+        generationConfig.put("responseMimeType", "application/json");
+        requestBody.put("generationConfig", generationConfig);
+
+        String responseJsonStr = null;
+        String[] models = {"gemini-2.5-flash", "gemini-1.5-flash"};
+        for (String model : models) {
+            try {
+                responseJsonStr = makeGeminiCall(model, requestBody.toString(), apiKey);
+                break;
+            } catch (Exception e) {
+                Log.w("GeminiTranslation", model + " failed: " + e.getMessage());
+            }
+        }
+
+        if (responseJsonStr != null) {
+            JSONObject responseJson = new JSONObject(responseJsonStr);
+            JSONArray candidates = responseJson.getJSONArray("candidates");
+            if (candidates.length() > 0) {
+                JSONObject candidate = candidates.getJSONObject(0);
+                JSONObject contentObj = candidate.getJSONObject("content");
+                JSONArray partsVal = contentObj.getJSONArray("parts");
+                if (partsVal.length() > 0) {
+                    String textResponse = partsVal.getJSONObject(0).getString("text");
+                    JSONArray translatedArr = new JSONArray(textResponse.trim());
+                    List<Recipe> translatedList = new ArrayList<>();
+                    for (int i = 0; i < translatedArr.length(); i++) {
+                        JSONObject recipeObj = translatedArr.getJSONObject(i);
+                        Recipe original = recipes.get(i);
+                        
+                        String id = recipeObj.optString("id", original.getId());
+                        String title = recipeObj.optString("title", original.getTitle());
+                        String description = recipeObj.optString("description", original.getDescription());
+                        String time = recipeObj.optString("time", original.getTime());
+                        String difficulty = recipeObj.optString("difficulty", original.getDifficulty());
+                        double rating = recipeObj.optDouble("rating", original.getRating());
+                        double proteins = recipeObj.optDouble("proteins", original.getProteins());
+                        double fats = recipeObj.optDouble("fats", original.getFats());
+                        double carbs = recipeObj.optDouble("carbs", original.getCarbs());
+                        String tips = recipeObj.optString("tips", original.getTips());
+                        String imageUrl = recipeObj.optString("imageUrl", original.getImageUrl());
+                        
+                        List<Ingredient> ingredients = new ArrayList<>();
+                        JSONArray ingArr = recipeObj.optJSONArray("ingredients");
+                        if (ingArr != null) {
+                            for (int j = 0; j < ingArr.length(); j++) {
+                                JSONObject ingObj = ingArr.getJSONObject(j);
+                                String name = ingObj.optString("name", original.getIngredients().get(j).getName());
+                                String amount = ingObj.optString("amount", original.getIngredients().get(j).getAmount());
+                                String emoji = ingObj.optString("emoji", original.getIngredients().get(j).getEmoji());
+                                ingredients.add(new Ingredient(name, amount, emoji));
+                            }
+                        } else {
+                            ingredients = original.getIngredients();
+                        }
+                        
+                        List<String> steps = new ArrayList<>();
+                        JSONArray stepsArr = recipeObj.optJSONArray("steps");
+                        if (stepsArr != null) {
+                            for (int j = 0; j < stepsArr.length(); j++) {
+                                steps.add(stepsArr.getString(j));
+                            }
+                        } else {
+                            steps = original.getSteps();
+                        }
+                        
+                        translatedList.add(new Recipe(id, title, description, time, difficulty, rating, ingredients, proteins, fats, carbs, steps, tips, imageUrl));
+                    }
+                    return translatedList;
+                }
+            }
+        }
+        throw new Exception("Empty response from Gemini during translation");
     }
 
     private String translateTextMyMemory(String text) {
@@ -1720,25 +1866,32 @@ public class HomeActivity extends AppCompatActivity {
         List<Recipe> translatedList = new ArrayList<>();
         for (Recipe r : recipes) {
             String title = translationMap.get(r.getTitle().trim());
-            if (title == null || title.equals(r.getTitle().trim())) {
-                translatedList.add(translateRecipeMock(r));
-                continue;
+            if (title == null || title.isEmpty()) {
+                title = r.getTitle();
             }
 
             String description = r.getDescription();
-            if (description.startsWith("A delicious ")) {
-                description = description.replace("A delicious ", "Un delizioso piatto di tipo ")
-                                         .replace(" dish.", ".");
+            if (description != null) {
+                if (description.startsWith("A delicious ")) {
+                    description = description.replace("A delicious ", "Un delizioso piatto di tipo ")
+                                             .replace(" dish.", ".");
+                }
+                description = translateTextMyMemory(description);
             }
-            description = translateTextMyMemory(description);
 
             String difficulty = r.getDifficulty();
-            if (difficulty.equalsIgnoreCase("Easy")) difficulty = "Facile";
-            else if (difficulty.equalsIgnoreCase("Medium")) difficulty = "Medio";
-            else if (difficulty.equalsIgnoreCase("Hard")) difficulty = "Difficile";
+            if (difficulty != null) {
+                if (difficulty.equalsIgnoreCase("Easy")) difficulty = "Facile";
+                else if (difficulty.equalsIgnoreCase("Medium")) difficulty = "Medio";
+                else if (difficulty.equalsIgnoreCase("Hard")) difficulty = "Difficile";
+            }
 
             String tips = r.getTips();
-            if (tips.equalsIgnoreCase("Serve hot and enjoy!")) tips = "Servire caldo e gustare!";
+            if (tips != null && tips.equalsIgnoreCase("Serve hot and enjoy!")) {
+                tips = "Servire caldo e gustare!";
+            } else if (tips != null) {
+                tips = translateTextMyMemory(tips);
+            }
 
             List<Ingredient> ingredients = new ArrayList<>();
             if (r.getIngredients() != null) {
@@ -1775,8 +1928,8 @@ public class HomeActivity extends AppCompatActivity {
             if (r.getSteps() != null) {
                 for (String step : r.getSteps()) {
                     String translatedStep = translationMap.get(step.trim());
-                    if (translatedStep == null || translatedStep.equals(step.trim())) {
-                        translatedStep = translateStepMockSingle(step);
+                    if (translatedStep == null) {
+                        translatedStep = step;
                     }
                     steps.add(translatedStep);
                 }
@@ -1802,280 +1955,12 @@ public class HomeActivity extends AppCompatActivity {
         return translatedList;
     }
 
-    private Recipe translateRecipeMock(Recipe r) {
-        String title = r.getTitle();
-        String description = r.getDescription();
-        String difficulty = r.getDifficulty();
-        String tips = r.getTips();
-
-        if (difficulty.equalsIgnoreCase("Easy")) difficulty = "Facile";
-        else if (difficulty.equalsIgnoreCase("Medium")) difficulty = "Medio";
-        else if (difficulty.equalsIgnoreCase("Hard")) difficulty = "Difficile";
-
-        if (tips.equalsIgnoreCase("Serve hot and enjoy!")) tips = "Servire caldo e gustare!";
-
-        if (description.startsWith("A delicious ")) {
-            description = description.replace("A delicious ", "Un delizioso piatto di tipo ")
-                                     .replace(" dish.", ".");
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        if (loadingRunnable != null) {
+            loadingHandler.removeCallbacks(loadingRunnable);
+            loadingRunnable = null;
         }
-
-        List<Ingredient> translatedIngs = new ArrayList<>();
-        for (Ingredient ing : r.getIngredients()) {
-            String name = translateIngredientNameMock(ing.getName());
-            String amount = translateAmountMock(ing.getAmount());
-            translatedIngs.add(new Ingredient(name, amount, getIngredientEmoji(name)));
-        }
-
-        title = translateTitleMock(title);
-
-        return new Recipe(
-                r.getId(),
-                title,
-                description,
-                r.getTime(),
-                difficulty,
-                r.getRating(),
-                translatedIngs,
-                r.getProteins(),
-                r.getFats(),
-                r.getCarbs(),
-                translateStepsMock(r.getSteps()),
-                tips,
-                r.getImageUrl()
-        );
-    }
-
-    private String translateTitleMock(String title) {
-        title = title.replaceAll("(?i)\\bchicken\\b", "Pollo")
-                     .replaceAll("(?i)\\bbeef\\b", "Manzo")
-                     .replaceAll("(?i)\\bsalad\\b", "Insalata")
-                     .replaceAll("(?i)\\bsoup\\b", "Zuppa")
-                     .replaceAll("(?i)\\bcake\\b", "Torta")
-                     .replaceAll("(?i)\\bpie\\b", "Crostata")
-                     .replaceAll("(?i)\\bbread\\b", "Pane")
-                     .replaceAll("(?i)\\bpancakes\\b", "Frittelle")
-                     .replaceAll("(?i)\\bcream\\b", "Crema")
-                     .replaceAll("(?i)\\bsauce\\b", "Salsa")
-                     .replaceAll("(?i)\\broasted\\b", "Arrosto")
-                     .replaceAll("(?i)\\bbaked\\b", "Al forno")
-                     .replaceAll("(?i)\\bsweet\\b", "Dolce")
-                     .replaceAll("(?i)\\bspicy\\b", "Piccante")
-                     .replaceAll("(?i)\\bfried\\b", "Fritto")
-                     .replaceAll("(?i)\\bwith\\b", "con");
-        return title;
-    }
-
-    private String translateAmountMock(String amount) {
-        if (amount == null) return "q.b.";
-        String lower = amount.toLowerCase().trim();
-        if (lower.equals("to taste")) return "q.b.";
-        
-        amount = amount.replaceAll("(?i)\\btbsp\\b", "cch.aio")
-                       .replaceAll("(?i)\\btsp\\b", "cch.ino")
-                       .replaceAll("(?i)\\bcups\\b", "tazze")
-                       .replaceAll("(?i)\\bcup\\b", "tazza")
-                       .replaceAll("(?i)\\boz\\b", "once")
-                       .replaceAll("(?i)\\blbs\\b", "libbre")
-                       .replaceAll("(?i)\\blb\\b", "libbra")
-                       .replaceAll("(?i)\\bpinches\\b", "pizzichi")
-                       .replaceAll("(?i)\\bpinch\\b", "pizzico")
-                       .replaceAll("(?i)\\bslices\\b", "fette")
-                       .replaceAll("(?i)\\bslice\\b", "fetta")
-                       .replaceAll("(?i)\\bcloves\\b", "spicchi")
-                       .replaceAll("(?i)\\bclove\\b", "spicchio")
-                       .replaceAll("(?i)\\bwhole\\b", "intero")
-                       .replaceAll("(?i)\\bcans\\b", "lattine")
-                       .replaceAll("(?i)\\bcan\\b", "lattina")
-                       .replaceAll("(?i)\\bbottle\\b", "bottiglia")
-                       .replaceAll("(?i)\\bchopped\\b", "tritato");
-        return amount;
-    }
-
-    private String translateIngredientNameMock(String name) {
-        String lower = name.toLowerCase().trim();
-        switch (lower) {
-            case "butter": return "burro";
-            case "egg": case "eggs": return "uova";
-            case "milk": return "latte";
-            case "flour": return "farina";
-            case "sugar": return "zucchero";
-            case "salt": return "sale";
-            case "pepper": return "pepe";
-            case "water": return "acqua";
-            case "chicken": return "pollo";
-            case "beef": return "manzo";
-            case "garlic": return "aglio";
-            case "onion": return "cipolla";
-            case "onions": return "cipolle";
-            case "olive oil": return "olio d'oliva";
-            case "vegetable oil": return "olio vegetale";
-            case "tomato": case "tomatoes": return "pomodori";
-            case "cheese": return "formaggio";
-            case "rice": return "riso";
-            case "bread": return "pane";
-            case "potato": case "potatoes": return "patate";
-            case "carrot": case "carrots": return "carote";
-            case "lemon": return "limone";
-            case "lemon juice": return "succo di limone";
-            case "vanilla extract": return "estratto di vaniglia";
-            case "yeast": return "lievito";
-            case "honey": return "miele";
-            case "cinnamon": return "cannella";
-            case "parsley": return "prezzemolo";
-            case "basil": return "basilico";
-            case "cream": return "panna";
-            case "pasta": return "pasta";
-            case "pork": return "maiale";
-            case "spinach": return "spinaci";
-            case "mushrooms": case "mushroom": return "funghi";
-            case "shrimp": case "shrimps": return "gamberetti";
-            case "fish": return "pesce";
-            case "mustard": return "senape";
-            case "vinegar": return "aceto";
-            case "ginger": return "zenzero";
-            case "bacon": return "pancetta";
-            case "ham": return "prosciutto";
-            default: return name;
-        }
-    }
-
-    private List<String> translateStepsMock(List<String> steps) {
-        if (steps == null) return new ArrayList<>();
-        List<String> translated = new ArrayList<>();
-        for (String step : steps) {
-            if (step == null) continue;
-            translated.add(translateStepMockSingle(step));
-        }
-        return translated;
-    }
-
-    private String translateStepMockSingle(String step) {
-        if (step == null) return "";
-        String t = step;
-        // Ovens and heating
-        t = t.replaceAll("(?i)\\bpreheat (the )?oven to\\b", "Preriscaldare il forno a")
-             .replaceAll("(?i)\\bheat (the )?oil\\b", "Scaldare l'olio")
-             .replaceAll("(?i)\\bheat a large (skillet|frying pan)\\b", "Scaldare una padella grande")
-             .replaceAll("(?i)\\bheat a large pot\\b", "Scaldare una pentola grande")
-             .replaceAll("(?i)\\bbring to (a|the) boil\\b", "Portare a bollore")
-             .replaceAll("(?i)\\bsimmer for\\b", "Sobbollire per")
-             .replaceAll("(?i)\\breduce (the )?heat\\b", "Ridurre la fiamma")
-             .replaceAll("(?i)\\bremove from (the )?heat\\b", "Togliere dal fuoco")
-             .replaceAll("(?i)\\blet it cool\\b", "Lasciare raffreddare")
-             .replaceAll("(?i)\\bcool completely\\b", "Raffreddare completamente");
-
-        // Prep verbs
-        t = t.replaceAll("(?i)\\bin a large bowl\\b", "In una ciotola capiente")
-             .replaceAll("(?i)\\bin a medium bowl\\b", "In una ciotola media")
-             .replaceAll("(?i)\\bin a small bowl\\b", "In una ciotola piccola")
-             .replaceAll("(?i)\\bmix together\\b", "Mescolare insieme")
-             .replaceAll("(?i)\\b(mix|stir) well\\b", "Mescolare bene")
-             .replaceAll("(?i)\\bstir in\\b", "Incorporare")
-             .replaceAll("(?i)\\bwhisk together\\b", "Sbattere insieme")
-             .replaceAll("(?i)\\bwhisk the eggs\\b", "Sbattere le uova")
-             .replaceAll("(?i)\\bwhisk well\\b", "Sbattere bene")
-             .replaceAll("(?i)\\bfinely chopped\\b", "tritato finemente")
-             .replaceAll("(?i)\\bchopped finely\\b", "tritato finemente")
-             .replaceAll("(?i)\\bfinely chop\\b", "tritare finemente")
-             .replaceAll("(?i)\\bchop the\\b", "tagliare il")
-             .replaceAll("(?i)\\bslice the\\b", "affettare il")
-             .replaceAll("(?i)\\bcut the\\b", "tagliare il")
-             .replaceAll("(?i)\\bpeel the\\b", "sbucciare il")
-             .replaceAll("(?i)\\bdrain and\\b", "scolare e")
-             .replaceAll("(?i)\\bdrain the\\b", "scolare il")
-             .replaceAll("(?i)\\bpour the mixture\\b", "versare il composto")
-             .replaceAll("(?i)\\bpour into\\b", "versare in")
-             .replaceAll("(?i)\\btransfer to\\b", "trasferire in")
-             .replaceAll("(?i)\\bplace in\\b", "mettere in")
-             .replaceAll("(?i)\\bplace on\\b", "mettere su")
-             .replaceAll("(?i)\\bseason with\\b", "condire con")
-             .replaceAll("(?i)\\bgarnish with\\b", "guarnire con")
-             .replaceAll("(?i)\\bcover and\\b", "coprire e")
-             .replaceAll("(?i)\\bstirring occasionally\\b", "mescolando di tanto in tanto");
-
-        // Cooking & time
-        t = t.replaceAll("(?i)\\bcook for\\b", "Cuocere per")
-             .replaceAll("(?i)\\bbake for\\b", "Cuocere in forno per")
-             .replaceAll("(?i)\\bcook until\\b", "Cuocere fino a quando")
-             .replaceAll("(?i)\\buntil golden brown\\b", "Fino a doratura")
-             .replaceAll("(?i)\\buntil golden\\b", "Fino a doratura")
-             .replaceAll("(?i)\\buntil softened\\b", "fino a quando si ammorbidisce")
-             .replaceAll("(?i)\\buntil soft\\b", "fino a quando si ammorbidisce")
-             .replaceAll("(?i)\\bminutes\\b", "minuti")
-             .replaceAll("(?i)\\bminute\\b", "minuto")
-             .replaceAll("(?i)\\bhours\\b", "ore")
-             .replaceAll("(?i)\\bhour\\b", "ora")
-             .replaceAll("(?i)\\bdegrees\\b", "gradi");
-
-        // Ingredients
-        t = t.replaceAll("(?i)\\badd the chicken\\b", "Aggiungere il pollo")
-             .replaceAll("(?i)\\badd chicken\\b", "Aggiungere pollo")
-             .replaceAll("(?i)\\badd the beef\\b", "Aggiungere il manzo")
-             .replaceAll("(?i)\\badd beef\\b", "Aggiungere manzo")
-             .replaceAll("(?i)\\badd the garlic\\b", "Aggiungere l'aglio")
-             .replaceAll("(?i)\\badd garlic\\b", "Aggiungere aglio")
-             .replaceAll("(?i)\\badd the onions\\b", "Aggiungere le cipolle")
-             .replaceAll("(?i)\\badd the onion\\b", "Aggiungere la cipolla")
-             .replaceAll("(?i)\\badd onions\\b", "Aggiungere cipolle")
-             .replaceAll("(?i)\\badd onion\\b", "Aggiungere cipolla")
-             .replaceAll("(?i)\\badd the butter\\b", "Aggiungere il burro")
-             .replaceAll("(?i)\\badd butter\\b", "Aggiungere burro")
-             .replaceAll("(?i)\\badd the milk\\b", "Aggiungere il latte")
-             .replaceAll("(?i)\\badd milk\\b", "Aggiungere latte")
-             .replaceAll("(?i)\\badd the flour\\b", "Aggiungere la farina")
-             .replaceAll("(?i)\\badd flour\\b", "Aggiungere farina")
-             .replaceAll("(?i)\\badd the sugar\\b", "Aggiungere lo zucchero")
-             .replaceAll("(?i)\\badd sugar\\b", "Aggiungere zucchero")
-             .replaceAll("(?i)\\badd the eggs\\b", "Aggiungere le uova")
-             .replaceAll("(?i)\\badd eggs\\b", "Aggiungere uova")
-             .replaceAll("(?i)\\badd the salt\\b", "Aggiungere il sale")
-             .replaceAll("(?i)\\badd salt\\b", "Aggiungere sale")
-             .replaceAll("(?i)\\badd the pepper\\b", "Aggiungere il pepe")
-             .replaceAll("(?i)\\badd pepper\\b", "Aggiungere pepe")
-             .replaceAll("(?i)\\badd the water\\b", "Aggiungere l'acqua")
-             .replaceAll("(?i)\\badd water\\b", "Aggiungere acqua")
-             .replaceAll("(?i)\\badd the cheese\\b", "Aggiungere il formaggio")
-             .replaceAll("(?i)\\badd cheese\\b", "Aggiungere formaggio")
-             .replaceAll("(?i)\\badd the tomatoes\\b", "Aggiungere i pomodori")
-             .replaceAll("(?i)\\badd tomatoes\\b", "Aggiungere pomodori")
-             .replaceAll("(?i)\\badd the vegetables\\b", "Aggiungere le verdure")
-             .replaceAll("(?i)\\badd vegetables\\b", "Aggiungere verdure")
-             .replaceAll("(?i)\\badd the rice\\b", "Aggiungere il riso")
-             .replaceAll("(?i)\\badd rice\\b", "Aggiungere riso")
-             .replaceAll("(?i)\\badd the pasta\\b", "Aggiungere la pasta")
-             .replaceAll("(?i)\\badd pasta\\b", "Aggiungere pasta")
-             .replaceAll("(?i)\\badd the potatoes\\b", "Aggiungere le patate")
-             .replaceAll("(?i)\\badd potatoes\\b", "Aggiungere patate")
-             .replaceAll("(?i)\\badd the carrots\\b", "Aggiungere le carote")
-             .replaceAll("(?i)\\badd carrots\\b", "Aggiungere carote")
-             .replaceAll("(?i)\\badd the olive oil\\b", "Aggiungere l'olio d'oliva")
-             .replaceAll("(?i)\\badd olive oil\\b", "Aggiungere olio d'oliva")
-             .replaceAll("(?i)\\badd the vegetable oil\\b", "Aggiungere l'olio vegetale")
-             .replaceAll("(?i)\\badd vegetable oil\\b", "Aggiungere olio vegetale");
-
-        // Serving & enjoying
-        t = t.replaceAll("(?i)\\bserve hot\\b", "Servire caldissimo")
-             .replaceAll("(?i)\\bserve warm\\b", "Servire caldo")
-             .replaceAll("(?i)\\bserve with\\b", "Servire con")
-             .replaceAll("(?i)\\bserve immediately\\b", "Servire immediatamente")
-             .replaceAll("(?i)\\benjoy!?\\b", "Buon appetito!");
-
-        // General conjunctions/prepositions
-        t = t.replaceAll("(?i)\\band then\\b", "e poi")
-             .replaceAll("(?i)\\bthen\\b", "poi")
-             .replaceAll("(?i)\\buntil the\\b", "fino a quando il")
-             .replaceAll("(?i)\\buntil it\\b", "fino a quando non")
-             .replaceAll("(?i)\\bwith the\\b", "con il")
-             .replaceAll("(?i)\\bto the\\b", "al")
-             .replaceAll("(?i)\\bin the\\b", "nel")
-             .replaceAll("(?i)\\bon the\\b", "sul")
-             .replaceAll("(?i)\\bfrom the\\b", "dal")
-             .replaceAll("(?i)\\binto the\\b", "nel")
-             .replaceAll("(?i)\\babout\\b", "circa")
-             .replaceAll("(?i)\\bover medium heat\\b", "a fuoco medio")
-             .replaceAll("(?i)\\bover high heat\\b", "a fuoco alto")
-             .replaceAll("(?i)\\bover low heat\\b", "a fuoco basso");
-
-        return t;
     }
 }

@@ -36,10 +36,10 @@ public class ThemeManager {
 
     public static final List<String> AVATARS = new ArrayList<>();
     static {
-        AVATARS.add("https://i.pravatar.cc/150?img=47"); // Kristin
-        AVATARS.add("https://i.pravatar.cc/150?img=32"); // Chef Boy
-        AVATARS.add("https://i.pravatar.cc/150?img=60"); // Chef Lady
-        AVATARS.add("https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?auto=format&fit=crop&w=150&q=80"); // Chef Cat
+        AVATARS.add("https://i.pravatar.cc/150?img=47"); // kristin
+        AVATARS.add("https://i.pravatar.cc/150?img=32"); // chef boy
+        AVATARS.add("https://i.pravatar.cc/150?img=60"); // chef lady
+        AVATARS.add("https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?auto=format&fit=crop&w=150&q=80"); // chef cat
     }
 
     public static String getUserName(Context context) {

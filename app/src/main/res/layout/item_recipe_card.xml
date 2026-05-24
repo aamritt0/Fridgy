@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:id="@+id/card_root"
     android:layout_width="0dp"
     android:layout_height="wrap_content"
@@ -8,20 +9,27 @@
     android:clipChildren="false"
     android:clipToPadding="false">
 
-    <!-- Main card body -->
-    <LinearLayout
+    <!-- corpo principale della scheda -->
+    <com.google.android.material.card.MaterialCardView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="48dp"
-        android:background="@drawable/card_bg"
-        android:orientation="vertical"
-        android:gravity="center_horizontal"
-        android:paddingStart="12dp"
-        android:paddingEnd="12dp"
-        android:paddingTop="68dp"
-        android:paddingBottom="16dp">
+        app:cardBackgroundColor="@color/background_card"
+        app:cardCornerRadius="24dp"
+        app:cardElevation="2dp"
+        app:strokeWidth="0dp">
 
-        <TextView
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:gravity="center_horizontal"
+            android:paddingStart="12dp"
+            android:paddingEnd="12dp"
+            android:paddingTop="68dp"
+            android:paddingBottom="16dp">
+
+            <TextView
             android:id="@+id/item_title"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -70,7 +78,7 @@
                 android:src="@android:drawable/star_on" />
         </LinearLayout>
 
-        <!-- Time badge row -->
+        <!-- riga con il badge del tempo -->
         <LinearLayout
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
@@ -82,7 +90,7 @@
                 android:layout_width="12dp"
                 android:layout_height="12dp"
                 android:src="@android:drawable/ic_menu_recent_history"
-                android:tint="@color/text_secondary" />
+                app:tint="@color/text_secondary" />
 
             <TextView
                 android:id="@+id/item_time"
@@ -93,19 +101,22 @@
                 android:textColor="@color/text_secondary"
                 android:textSize="11sp" />
         </LinearLayout>
-
     </LinearLayout>
+</com.google.android.material.card.MaterialCardView>
 
-    <!-- Circular food image floating above card -->
-    <ImageView
+    <!-- immagine del piatto fluttuante -->
+    <com.google.android.material.imageview.ShapeableImageView
         android:id="@+id/item_image"
         android:layout_width="112dp"
         android:layout_height="112dp"
         android:layout_gravity="top|center_horizontal"
-        android:background="@drawable/circle_shape_border"
-        android:scaleType="centerCrop" />
+        android:elevation="4dp"
+        android:scaleType="centerCrop"
+        app:shapeAppearanceOverlay="@style/CircleImageView"
+        app:strokeColor="@color/background_color"
+        app:strokeWidth="4dp" />
 
-    <!-- Hot pepper badge on image -->
+    <!-- icona del piccante sull'immagine -->
     <TextView
         android:id="@+id/item_spicy_badge"
         android:layout_width="wrap_content"

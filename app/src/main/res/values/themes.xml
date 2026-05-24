@@ -1,9 +1,13 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
-    <!-- Base application theme. -->
+    <!-- tema di base dell'applicazione -->
     <style name="Base.Theme.Friddgy" parent="Theme.Material3.DayNight.NoActionBar">
-        <!-- Customize your light theme here. -->
-        <!-- <item name="colorPrimary">@color/my_light_primary</item> -->
+        <!-- personalizzazione del tema chiaro -->
+        <!-- colore primario di esempio -->
     </style>
 
     <style name="Theme.Friddgy" parent="Base.Theme.Friddgy" />
+
+    <style name="CircleImageView">
+        <item name="cornerSize">50%</item>
+    </style>
 </resources>

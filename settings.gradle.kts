@@ -19,6 +19,6 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "Friddgy"
+rootProject.name = "Fridgy"
 include(":app")
  

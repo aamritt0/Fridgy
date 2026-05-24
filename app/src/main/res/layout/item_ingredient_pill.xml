@@ -1,26 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<com.google.android.material.chip.Chip xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/chip_ingredient"
     android:layout_width="wrap_content"
     android:layout_height="wrap_content"
-    android:background="@drawable/chip_bg"
-    android:gravity="center_vertical"
-    android:orientation="horizontal"
     android:layout_marginEnd="8dp"
-    android:paddingHorizontal="16dp"
-    android:paddingVertical="8dp">
-
-    <TextView
-        android:id="@+id/tv_name"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:textColor="@color/white"
-        android:textSize="14sp" />
-
-    <ImageView
-        android:id="@+id/btn_remove"
-        android:layout_width="16dp"
-        android:layout_height="16dp"
-        android:layout_marginStart="8dp"
-        android:src="@android:drawable/ic_menu_close_clear_cancel"
-        android:tint="@color/text_secondary" />
-</LinearLayout>
+    android:textColor="@color/white"
+    app:chipBackgroundColor="@color/background_card"
+    app:chipCornerRadius="16dp"
+    app:closeIconEnabled="true"
+    app:closeIconTint="@color/text_secondary"
+    app:closeIconSize="18dp"
+    app:strokeWidth="0dp"
+    style="@style/Widget.Material3.Chip.Input" />
