@@ -105,6 +105,12 @@ public class MainActivity extends AppCompatActivity {
         EditText etName = findViewById(R.id.setup_et_name);
         Button btnConfirmSetup = findViewById(R.id.btn_confirm_setup);
 
+        View layoutApiSetup = findViewById(R.id.layout_api_setup);
+        EditText etApiKey = findViewById(R.id.setup_et_api_key);
+        TextView btnGetApiKeyLink = findViewById(R.id.btn_get_api_key_link);
+        Button btnFinishSetup = findViewById(R.id.btn_finish_setup);
+        TextView btnSkipApiKey = findViewById(R.id.btn_skip_api_key);
+
         if (imageContainer != null) {
             imageContainer.setOutlineProvider(new android.view.ViewOutlineProvider() {
                 @Override
@@ -142,6 +148,52 @@ public class MainActivity extends AppCompatActivity {
                 if (selectedImageUriString != null) {
                     ThemeManager.setAvatarUrl(MainActivity.this, selectedImageUriString);
                 }
+
+                // Transition to API Key Setup screen
+                if (layoutProfileSetup != null && layoutApiSetup != null) {
+                    layoutProfileSetup.animate().alpha(0.0f).translationY(-50f).setDuration(300).withEndAction(() -> {
+                        layoutProfileSetup.setVisibility(View.GONE);
+                        layoutApiSetup.setVisibility(View.VISIBLE);
+                        layoutApiSetup.setAlpha(0.0f);
+                        layoutApiSetup.setTranslationY(50f);
+                        layoutApiSetup.animate().alpha(1.0f).translationY(0f).setDuration(350).start();
+                    }).start();
+                }
+            });
+        }
+
+        // Setup API Key listeners
+        if (btnGetApiKeyLink != null) {
+            btnGetApiKeyLink.setOnClickListener(v -> {
+                Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse("https://aistudio.google.com/"));
+                startActivity(intent);
+            });
+        }
+
+        if (btnFinishSetup != null) {
+            ThemeManager.applyTouchScaleAnimation(btnFinishSetup, () -> {
+                String apiKey = etApiKey != null ? etApiKey.getText().toString().trim() : "";
+                if (apiKey.isEmpty()) {
+                    Toast.makeText(MainActivity.this, "Inserisci una API Key o clicca su 'Configura più tardi' per saltare", Toast.LENGTH_LONG).show();
+                    return;
+                }
+
+                // Save API key
+                ThemeManager.setGeminiApiKey(MainActivity.this, apiKey);
+
+                // Mark first launch as complete
+                prefs.edit().putBoolean("is_first_launch", false).apply();
+
+                // Open home and finish
+                startActivity(new Intent(MainActivity.this, HomeActivity.class));
+                finish();
+            });
+        }
+
+        if (btnSkipApiKey != null) {
+            btnSkipApiKey.setOnClickListener(v -> {
+                // Clear or leave API key empty
+                ThemeManager.setGeminiApiKey(MainActivity.this, "");
 
                 // Mark first launch as complete
                 prefs.edit().putBoolean("is_first_launch", false).apply();
@@ -244,6 +296,34 @@ public class MainActivity extends AppCompatActivity {
         View setupBadgeContainer = findViewById(R.id.setup_badge_container);
         if (setupBadgeContainer != null) {
             setupBadgeContainer.setBackgroundTintList(android.content.res.ColorStateList.valueOf(accentColor));
+        }
+
+        // 6. API Setup Elements
+        Button btnFinishSetup = findViewById(R.id.btn_finish_setup);
+        if (btnFinishSetup != null) {
+            btnFinishSetup.setBackgroundTintList(android.content.res.ColorStateList.valueOf(accentColor));
+        }
+
+        TextView btnGetApiKeyLink = findViewById(R.id.btn_get_api_key_link);
+        if (btnGetApiKeyLink != null) {
+            btnGetApiKeyLink.setTextColor(accentColor);
+        }
+
+        TextView setupApiTutorialHeader = findViewById(R.id.setup_api_tutorial_header);
+        if (setupApiTutorialHeader != null) {
+            setupApiTutorialHeader.setTextColor(accentColor);
+        }
+
+        TextView setupApiTitle = findViewById(R.id.setup_api_title);
+        if (setupApiTitle != null) {
+            String fullText = "Configura l'IA";
+            SpannableString spannableString = new SpannableString(fullText);
+            int start = fullText.indexOf("IA");
+            if (start != -1) {
+                int end = start + "IA".length();
+                spannableString.setSpan(new ForegroundColorSpan(accentColor), start, end, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                setupApiTitle.setText(spannableString);
+            }
         }
     }
 

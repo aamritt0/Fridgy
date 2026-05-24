@@ -218,11 +218,164 @@
             android:backgroundTint="@color/accent_color"
             app:cornerRadius="32dp"
             android:stateListAnimator="@null"
-            android:text="Inizia l'avventura!"
+            android:text="Continua"
             android:textAllCaps="false"
             android:textColor="@color/background_color"
             android:textSize="18sp"
             android:textStyle="bold" />
+
+    </LinearLayout>
+
+    <!-- API KEY SETUP VIEW (hidden initially) -->
+    <LinearLayout
+        android:id="@+id/layout_api_setup"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:visibility="gone"
+        android:padding="32dp"
+        android:gravity="center">
+
+        <!-- Title -->
+        <TextView
+            android:id="@+id/setup_api_title"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Configura l'IA"
+            android:textColor="@color/white"
+            android:textSize="28sp"
+            android:textStyle="bold"
+            android:gravity="center"
+            android:layout_marginBottom="8dp" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Friddgy genera ricette con l'Intelligenza Artificiale. Per iniziare, inserisci la tua API Key di Gemini."
+            android:textColor="@color/text_secondary"
+            android:textSize="15sp"
+            android:gravity="center"
+            android:layout_marginBottom="32dp" />
+
+        <!-- API Key Input -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="56dp"
+            android:background="@drawable/search_bg"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingHorizontal="16dp"
+            android:layout_marginBottom="20dp">
+
+            <ImageView
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:src="@drawable/ic_key"
+                android:tint="@color/text_secondary" />
+
+            <EditText
+                android:id="@+id/setup_et_api_key"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:background="@null"
+                android:hint="API Key di Gemini..."
+                android:paddingHorizontal="12dp"
+                android:singleLine="true"
+                android:textColor="@color/white"
+                android:textColorHint="@color/text_secondary"
+                android:inputType="textPassword"
+                android:textSize="16sp" />
+        </LinearLayout>
+
+        <!-- Mini Tutorial Card -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@drawable/card_bg"
+            android:backgroundTint="@color/background_card"
+            android:orientation="vertical"
+            android:padding="20dp"
+            android:layout_marginBottom="24dp">
+
+            <TextView
+                android:id="@+id/setup_api_tutorial_header"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="COME OTTENERE LA CHIAVE API"
+                android:textColor="@color/accent_color"
+                android:textSize="12sp"
+                android:textStyle="bold"
+                android:layout_gravity="center_horizontal"
+                android:letterSpacing="0.1"
+                android:layout_marginBottom="12dp" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="1. Vai su Google AI Studio."
+                android:textColor="@color/text_hint"
+                android:textSize="14sp"
+                android:layout_marginBottom="4dp" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="2. Accedi con il tuo account Google."
+                android:textColor="@color/text_hint"
+                android:textSize="14sp"
+                android:layout_marginBottom="4dp" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="3. Clicca su 'Get API key' e creane una nuova."
+                android:textColor="@color/text_hint"
+                android:textSize="14sp"
+                android:layout_marginBottom="16dp" />
+
+            <TextView
+                android:id="@+id/btn_get_api_key_link"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center_horizontal"
+                android:text="Ottieni una chiave API gratis"
+                android:textColor="@color/accent_color"
+                android:textSize="15sp"
+                android:textStyle="bold"
+                android:clickable="true"
+                android:focusable="true"
+                android:background="?attr/selectableItemBackground"
+                android:padding="8dp" />
+        </LinearLayout>
+
+        <!-- Submit Button -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_finish_setup"
+            android:layout_width="match_parent"
+            android:layout_height="64dp"
+            android:backgroundTint="@color/accent_color"
+            app:cornerRadius="32dp"
+            android:stateListAnimator="@null"
+            android:text="Inizia l'avventura!"
+            android:textAllCaps="false"
+            android:textColor="@color/background_color"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:layout_marginBottom="16dp" />
+
+        <!-- Skip API Key Button -->
+        <TextView
+            android:id="@+id/btn_skip_api_key"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Configura più tardi"
+            android:textColor="@color/text_secondary"
+            android:textSize="14sp"
+            android:textStyle="bold"
+            android:clickable="true"
+            android:focusable="true"
+            android:padding="12dp" />
 
     </LinearLayout>
 
