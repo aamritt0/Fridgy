@@ -46,6 +46,7 @@ public class MainActivity extends AppCompatActivity {
                         if (ivProfile != null) {
                             Glide.with(this)
                                     .load(savedPath)
+                                    .signature(new com.bumptech.glide.signature.ObjectKey(System.currentTimeMillis()))
                                     .placeholder(android.R.drawable.ic_menu_gallery)
                                     .error(android.R.drawable.ic_menu_gallery)
                                     .into(ivProfile);

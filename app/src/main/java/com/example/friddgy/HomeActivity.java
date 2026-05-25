@@ -51,7 +51,7 @@ import android.graphics.drawable.ColorDrawable;
 
 public class HomeActivity extends AppCompatActivity {
 
-    // Gemini API key is loaded dynamically from SharedPreferences
+    // la chiave api gemini viene caricata dinamicamente dalle sharedpreferences
 
     private List<String> currentIngredients = new ArrayList<>();
     private List<Recipe> currentRecipes = new ArrayList<>();
@@ -91,11 +91,12 @@ public class HomeActivity extends AppCompatActivity {
                         if (dialogIvProfile != null) {
                             Glide.with(this)
                                     .load(savedPath)
+                                    .signature(new com.bumptech.glide.signature.ObjectKey(System.currentTimeMillis()))
                                     .placeholder(android.R.drawable.ic_menu_gallery)
                                     .error(android.R.drawable.ic_menu_gallery)
                                     .into(dialogIvProfile);
                             dialogIvProfile.setScaleType(ImageView.ScaleType.CENTER_CROP);
-                            dialogIvProfile.setImageTintList(null); // Clear camera icon tint
+                            dialogIvProfile.setImageTintList(null); // rimuove il colore dell'icona fotocamera
                         }
                     }
                 }
@@ -202,7 +203,7 @@ public class HomeActivity extends AppCompatActivity {
             ThemeManager.applyTouchScaleAnimation(btnBackGenerated, () -> showGeneratedRecipesView(false));
         }
 
-        // Initialize cache from disk (v6 key – invalidates older mock/untranslated caches)
+        // inizializza la cache dal disco (la chiave v6 invalida le vecchie cache non tradotte)
         mealDbCache.put("Breakfast", loadCacheFromDisk("Breakfast"));
         mealDbCache.put("Lunch", loadCacheFromDisk("Lunch"));
         mealDbCache.put("Dinner", loadCacheFromDisk("Dinner"));
@@ -216,8 +217,8 @@ public class HomeActivity extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
-        // If the generated recipes view is active (user just swiped back from a recipe detail),
-        // do NOT repopulate recents/favorites — keep the generated results visible.
+        // se la schermata delle ricette generate è attiva (ad esempio quando l'utente torna indietro dal dettaglio),
+        // non ricaricare i recenti/preferiti in modo da mantenere visibili i risultati generati.
         if (!isGeneratedViewActive) {
             populateHorizontalSection(containerRecents, sectionRecents, loadRecents());
             populateHorizontalSection(containerFavorites, sectionFavorites, loadFavorites());
@@ -269,7 +270,7 @@ public class HomeActivity extends AppCompatActivity {
 
         new Thread(() -> {
             try {
-                // Build JSON request manually with generationConfig and responseSchema
+                // costruisce manualmente la richiesta json con generationconfig e responseschema
                 JSONObject requestBody = new JSONObject();
                     JSONArray contents = new JSONArray();
                     JSONObject content = new JSONObject();
@@ -301,7 +302,7 @@ public class HomeActivity extends AppCompatActivity {
                     contents.put(content);
                     requestBody.put("contents", contents);
 
-                    // Structured outputs configuration
+                    // configurazione per l'output strutturato
                     JSONObject generationConfig = new JSONObject();
                     generationConfig.put("responseMimeType", "application/json");
 
@@ -373,7 +374,7 @@ public class HomeActivity extends AppCompatActivity {
                         try {
                             Log.d("GeminiCall", "Trying to generate recipe using model: " + model);
                             responseJsonStr = makeGeminiCall(model, requestBody.toString(), apiKey);
-                            break; // Success!
+                            break; // fatto!
                         } catch (Exception e) {
                             Log.w("GeminiCall", model + " failed: " + e.getMessage() + ". Retrying with next model...");
                             try { Thread.sleep(1000); } catch (InterruptedException ignored) {}
@@ -430,7 +431,7 @@ public class HomeActivity extends AppCompatActivity {
                                 String tips = rObj.optString("tips", "");
                                 String imageKeyword = rObj.getString("imageKeyword");
 
-                                // Fetch image from MealDB
+                                // recupera l'immagine da mealdb
                                 String imageUrl = fetchMealDbImage(imageKeyword, title);
 
                                 currentRecipes.add(new Recipe(
@@ -510,10 +511,10 @@ public class HomeActivity extends AppCompatActivity {
             Recipe recipe = currentRecipes.get(i);
             View cardView = inflater.inflate(R.layout.item_recipe_card, currentRow, false);
             
-            // Staggered layout simulation
+            // simula un layout staggered
             if (i % 2 != 0) {
                 LinearLayout.LayoutParams params = (LinearLayout.LayoutParams) cardView.getLayoutParams();
-                params.topMargin = 120; // Stagger effect
+                params.topMargin = 120; // effetto stagger
                 cardView.setLayoutParams(params);
             }
 
@@ -525,7 +526,7 @@ public class HomeActivity extends AppCompatActivity {
 
             tvTitle.setText(recipe.getTitle());
 
-            // Set the 5-star rating programmatically
+            // imposta le 5 stelle di valutazione da codice
             ImageView star1 = cardView.findViewById(R.id.star1);
             ImageView star2 = cardView.findViewById(R.id.star2);
             ImageView star3 = cardView.findViewById(R.id.star3);
@@ -543,7 +544,7 @@ public class HomeActivity extends AppCompatActivity {
                         stars[j].setImageTintList(ColorStateList.valueOf(accentColor));
                     } else {
                         stars[j].setImageResource(android.R.drawable.star_off);
-                        stars[j].setImageTintList(ColorStateList.valueOf(Color.parseColor("#4b4c53"))); // dark grey unselected
+                        stars[j].setImageTintList(ColorStateList.valueOf(Color.parseColor("#4b4c53"))); // grigio scuro per quelle non selezionate
                     }
                 }
             }
@@ -558,10 +559,10 @@ public class HomeActivity extends AppCompatActivity {
                 ivImage.setClipToOutline(true);
             }
 
-            // Load image
+            // carica l'immagine
             loadImage(recipe.getImageUrl(), ivImage);
 
-            // Set time badge
+            // imposta il tempo di preparazione
             TextView tvTime = cardView.findViewById(R.id.item_time);
             if (tvTime != null && recipe.getTime() != null && !recipe.getTime().isEmpty()) {
                 tvTime.setText(recipe.getTime());
@@ -579,7 +580,7 @@ public class HomeActivity extends AppCompatActivity {
 
     private void switchTab(String categoryName) {
         activeTab = categoryName;
-        // Update visual selection on category icons
+        // aggiorna l'evidenziazione delle icone delle categorie
         updateCategoryHighlight(categoryName);
         if (categoryName.equals("Breakfast")) {
             loadMealDbRecipes("Breakfast", "Breakfast");
@@ -597,20 +598,20 @@ public class HomeActivity extends AppCompatActivity {
     private void updateCategoryHighlight(String activeCategory) {
         ThemeManager.ThemePreset theme = ThemeManager.getCurrentTheme(this);
         int accentColor = Color.parseColor(theme.accentColor);
-        int inactiveColor = Color.parseColor("#2C2D35"); // background_card
+        int inactiveColor = Color.parseColor("#2C2D35"); // colore di sfondo della scheda
 
         View[] catViews = {catBreakfastView, catLunchView, catDinnerView, catDessertView, catSaladsView};
         String[] catNames = {"Breakfast", "Lunch", "Dinner", "Dessert", "Salads"};
 
         for (int i = 0; i < catViews.length; i++) {
             if (catViews[i] == null) continue;
-            // The first child of the LinearLayout is the FrameLayout (circle)
+            // il primo elemento figlio del linearlayout è il framelayout (il cerchio)
             android.view.ViewGroup catContainer = (android.view.ViewGroup) catViews[i];
             if (catContainer.getChildCount() > 0) {
                 android.view.View circle = catContainer.getChildAt(0);
                 boolean isActive = catNames[i].equals(activeCategory);
                 circle.setBackgroundTintList(ColorStateList.valueOf(isActive ? accentColor : inactiveColor));
-                // Update label color
+                // aggiorna il colore del testo
                 if (catContainer.getChildCount() > 1 && catContainer.getChildAt(1) instanceof TextView) {
                     TextView label = (TextView) catContainer.getChildAt(1);
                     label.setTextColor(isActive ? accentColor : Color.parseColor("#a0a0ab"));
@@ -666,7 +667,7 @@ public class HomeActivity extends AppCompatActivity {
         for (Recipe recipe : recipes) {
             View cardView = inflater.inflate(R.layout.item_recipe_card, container, false);
             
-            // Set custom layout params for horizontal scroll items
+            // imposta i parametri di layout personalizzati per gli elementi a scorrimento orizzontale
             LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
                 (int) android.util.TypedValue.applyDimension(android.util.TypedValue.COMPLEX_UNIT_DIP, 150, getResources().getDisplayMetrics()),
                 android.view.ViewGroup.LayoutParams.WRAP_CONTENT
@@ -685,7 +686,7 @@ public class HomeActivity extends AppCompatActivity {
 
             tvTitle.setText(recipe.getTitle());
 
-            // Rating Stars
+            // stelle di valutazione
             if (layoutRating != null) {
                 int rating = (int) Math.round(recipe.getRating());
                 ImageView[] stars = {
@@ -698,9 +699,9 @@ public class HomeActivity extends AppCompatActivity {
                 for (int j = 0; j < 5; j++) {
                     if (stars[j] != null) {
                         if (j < rating) {
-                            stars[j].setImageTintList(ColorStateList.valueOf(Color.parseColor("#ffcc00"))); // yellow gold
+                            stars[j].setImageTintList(ColorStateList.valueOf(Color.parseColor("#ffcc00"))); // oro/giallo
                         } else {
-                            stars[j].setImageTintList(ColorStateList.valueOf(Color.parseColor("#4b4c53"))); // dark grey
+                            stars[j].setImageTintList(ColorStateList.valueOf(Color.parseColor("#4b4c53"))); // grigio scuro
                         }
                     }
                 }
@@ -717,7 +718,7 @@ public class HomeActivity extends AppCompatActivity {
                 loadImage(recipe.getImageUrl(), ivImage);
             }
 
-            // Set time badge
+            // imposta il tempo di preparazione
             TextView tvTimeH = cardView.findViewById(R.id.item_time);
             if (tvTimeH != null && recipe.getTime() != null && !recipe.getTime().isEmpty()) {
                 tvTimeH.setText(recipe.getTime());
@@ -895,7 +896,7 @@ public class HomeActivity extends AppCompatActivity {
             for (int i = 0; i < tabs.length; i++) {
                 if (i > 0) {
                     try {
-                        Thread.sleep(7000); // safety delay to avoid Gemini rate limits during background pre-fetch
+                        Thread.sleep(7000); // ritardo di sicurezza per evitare rate limit di gemini durante il pre-fetch in background
                     } catch (InterruptedException ignored) {}
                 }
                 String tab = tabs[i];
@@ -917,7 +918,7 @@ public class HomeActivity extends AppCompatActivity {
     }
 
     private void loadMealDbRecipes(String categoryName, String tabName) {
-        // If we have a valid in-memory cache for this tab, use it immediately (no loading needed)
+        // se abbiamo una cache in memoria valida per questo tab, la usiamo subito (senza caricare)
         List<Recipe> cached = mealDbCache.get(tabName);
         if (cached != null && !cached.isEmpty()) {
             currentRecipes.clear();
@@ -926,7 +927,7 @@ public class HomeActivity extends AppCompatActivity {
             return;
         }
 
-        // No cache available – show the loading animation and fetch+translate
+        // nessuna cache disponibile: mostriamo il caricamento, scarichiamo e traduciamo
         progressBar.setVisibility(View.GONE);
         showLoadingState(true);
         new Thread(() -> {
@@ -934,7 +935,7 @@ public class HomeActivity extends AppCompatActivity {
                 List<Recipe> fetchedRecipes = fetchCategoryFromMealDb(categoryName);
                 List<Recipe> translatedRecipes = translateRecipesToItalian(fetchedRecipes);
                 if (translatedRecipes == null || translatedRecipes.isEmpty()) {
-                    translatedRecipes = fetchedRecipes; // fallback to untranslated if everything failed
+                    translatedRecipes = fetchedRecipes; // ripiego sulle ricette non tradotte se fallisce tutto
                 }
                 mealDbCache.put(tabName, translatedRecipes);
                 saveCacheToDisk(tabName, translatedRecipes);
@@ -963,9 +964,11 @@ public class HomeActivity extends AppCompatActivity {
             imageView.setImageResource(android.R.drawable.ic_menu_gallery);
             return;
         }
-        Glide.with(this)
-                .load(urlStr)
-                .placeholder(android.R.drawable.ic_menu_gallery)
+        com.bumptech.glide.RequestBuilder<android.graphics.drawable.Drawable> builder = Glide.with(this).load(urlStr);
+        if (urlStr.startsWith("/") || urlStr.startsWith("file://") || urlStr.contains("profile_picture")) {
+            builder = builder.signature(new com.bumptech.glide.signature.ObjectKey(System.currentTimeMillis()));
+        }
+        builder.placeholder(android.R.drawable.ic_menu_gallery)
                 .error(android.R.drawable.ic_menu_gallery)
                 .into(imageView);
     }
@@ -1174,7 +1177,7 @@ public class HomeActivity extends AppCompatActivity {
         int accentColor = Color.parseColor(theme.accentColor);
         int secondaryColor = Color.parseColor(theme.secondaryColor);
 
-        // Update profile picture
+        // aggiorna la foto del profilo
         ImageView ivProfile = findViewById(R.id.iv_profile);
         if (ivProfile != null) {
             ivProfile.setPadding(6, 6, 6, 6);
@@ -1196,29 +1199,29 @@ public class HomeActivity extends AppCompatActivity {
             }
         }
 
-        // Update User Greeting Name
+        // aggiorna il nome di saluto dell'utente
         TextView tvHelloUser = findViewById(R.id.tv_hello_user);
         if (tvHelloUser != null) {
             tvHelloUser.setText("Ciao, " + ThemeManager.getUserName(this) + " \uD83D\uDC4B");
         }
 
-        // Update Add Ingredient button text color
+        // aggiorna il colore del testo del pulsante per aggiungere gli ingredienti
         TextView btnAddIngredient = findViewById(R.id.btn_add_ingredient);
         if (btnAddIngredient != null) {
             btnAddIngredient.setTextColor(accentColor);
         }
 
-        // Update Generate Button background tint
+        // aggiorna la tinta di sfondo del pulsante per generare
         if (btnGenerate != null) {
             btnGenerate.setBackgroundTintList(ColorStateList.valueOf(accentColor));
         }
 
-        // Update progress bar
+        // aggiorna la barra di progresso
         if (progressBar != null) {
             progressBar.setIndeterminateTintList(ColorStateList.valueOf(accentColor));
         }
 
-        // Update recipes display only when NOT in loading state
+        // aggiorna la vista delle ricette solo quando non sta caricando
         if (!isLoadingActive) {
             updateRecipesUI();
         }
@@ -1244,10 +1247,10 @@ public class HomeActivity extends AppCompatActivity {
 
         LinearLayout layoutThemes = dialogView.findViewById(R.id.dialog_layout_themes);
 
-        // Pre-fetch choices
+        // pre-recupera le scelte
         final String[] selectedTheme = {ThemeManager.getCurrentTheme(this).name};
 
-        // Populate Theme choices
+        // popola le scelte dei temi
         layoutThemes.removeAllViews();
         for (ThemeManager.ThemePreset preset : ThemeManager.PRESETS) {
             View swatchView = new View(this);
@@ -1286,7 +1289,7 @@ public class HomeActivity extends AppCompatActivity {
             layoutThemes.addView(swatchView);
         }
 
-        // Setup Custom Avatar UI logic in Dialog
+        // logica per l'avatar personalizzato nel dialog
         View imageContainer = dialogView.findViewById(R.id.dialog_profile_image_container);
         ImageView ivProfile = dialogView.findViewById(R.id.dialog_iv_profile);
         View btnPickImage = dialogView.findViewById(R.id.dialog_btn_pick_image);
@@ -1326,7 +1329,7 @@ public class HomeActivity extends AppCompatActivity {
             } else {
                 loadImage(dialogSelectedAvatarPath, ivProfile);
             }
-            ivProfile.setImageTintList(null); // Clear tint
+            ivProfile.setImageTintList(null); // rimuove la tinta
         }
 
         if (badgeContainer != null) {
@@ -1395,29 +1398,28 @@ public class HomeActivity extends AppCompatActivity {
     }
 
     private void showLoadingState(boolean isInitialization) {
-        // Must be called on the main thread – do NOT wrap in runOnUiThread (that would defer
-        // execution to the next looper cycle, letting subsequent main-thread code like
-        // applyCustomizations() run first and flicker the content layout back into view).
+        // va chiamato sul thread principale, meglio non metterlo in runonuithread
+        // altrimenti rischiamo che venga rimandato al ciclo successivo e sfarfalli la schermata
         if (layoutLoadingState == null || layoutHomeContent == null) return;
 
         isLoadingActive = true;
 
-        // Cancel any running animations or runnable
+        // cancella animazioni o runnable ancora attivi
         if (loadingRunnable != null) {
             loadingHandler.removeCallbacks(loadingRunnable);
             loadingRunnable = null;
         }
 
-        // Hide only the home content (categories, recipes, recents) — keep header, search,
-        // ingredients pills, and generate button visible so the user can see their input.
+        // nasconde solo il contenuto principale, lasciando visibili l'intestazione, la ricerca
+        // e i pulsanti degli ingredienti così l'utente vede cosa sta facendo
         layoutHomeContent.setVisibility(View.GONE);
         layoutLoadingState.setVisibility(View.VISIBLE);
 
-        // Keep header bar and search bar visible during loading
+        // mantiene visibile la barra di ricerca e la testata durante il caricamento
         if (layoutHeaderBar != null) layoutHeaderBar.setVisibility(View.VISIBLE);
         if (layoutSearchBar != null) layoutSearchBar.setVisibility(View.VISIBLE);
-        // ingredients scroll and generate button are controlled by updateIngredientsUI()
-        // — do NOT hide them here; let the existing logic decide based on ingredient list.
+        // la barra degli ingredienti e il pulsante per generare sono controllati da updateingredientsui()
+        // quindi non vanno nascosti qui
 
             TextView tvEmoji = layoutLoadingState.findViewById(R.id.tv_loading_emoji);
             TextView tvTitle = layoutLoadingState.findViewById(R.id.tv_loading_title);
@@ -1428,7 +1430,7 @@ public class HomeActivity extends AppCompatActivity {
             View dot2 = layoutLoadingState.findViewById(R.id.dot2);
             View dot3 = layoutLoadingState.findViewById(R.id.dot3);
 
-            // Set initial texts based on state
+            // imposta i testi iniziali in base allo stato
             if (isInitialization) {
                 if (tvTitle != null) tvTitle.setText("Inizializzazione...");
                 if (tvSubtitle != null) tvSubtitle.setText("Preparazione dei tuoi ingredienti freschi");
@@ -1437,7 +1439,7 @@ public class HomeActivity extends AppCompatActivity {
                 if (tvSubtitle != null) tvSubtitle.setText("Consultando i nostri chef stellati");
             }
 
-            // 1. Rotation animation for the emoji container
+            // 1. animazione di rotazione per il cerchio dell'emoji
             android.view.animation.RotateAnimation rotate = new android.view.animation.RotateAnimation(
                 0, 360,
                 android.view.animation.Animation.RELATIVE_TO_SELF, 0.5f,
@@ -1450,7 +1452,7 @@ public class HomeActivity extends AppCompatActivity {
                 emojiContainer.startAnimation(rotate);
             }
 
-            // 2. Pulse / Scale animation for the emoji text itself
+            // 2. effetto pulsante / scala per il testo dell'emoji
             android.view.animation.ScaleAnimation pulse = new android.view.animation.ScaleAnimation(
                 0.8f, 1.2f, 0.8f, 1.2f,
                 android.view.animation.Animation.RELATIVE_TO_SELF, 0.5f,
@@ -1463,7 +1465,7 @@ public class HomeActivity extends AppCompatActivity {
                 tvEmoji.startAnimation(pulse);
             }
 
-            // List of Chef Tips
+            // elenco dei consigli dello chef
             String[] chefTips = {
                 "Leggi l'intera ricetta prima di iniziare a cucinare.",
                 "Non affollare la padella! Fa evaporare il cibo invece di rosolarlo.",
@@ -1476,7 +1478,7 @@ public class HomeActivity extends AppCompatActivity {
                 "Usa un tovagliolo di carta umido sotto il tagliere per evitare che scivoli."
             };
 
-            // List of titles
+            // elenco dei titoli di caricamento
             String[] loadingTitles = isInitialization ? new String[]{
                 "Inizializzazione...",
                 "Caricamento ingredienti freschi...",
@@ -1491,7 +1493,7 @@ public class HomeActivity extends AppCompatActivity {
                 "Miscelando il mix perfetto..."
             };
 
-            // List of emojis
+            // elenco di emoji sul cibo
             String[] foodEmojis = {"🍳", "🥣", "🥘", "🥗", "🍲", "🥞", "🧁", "🍝", "🍕"};
 
             final int[] tipIndex = {0};
@@ -1504,7 +1506,7 @@ public class HomeActivity extends AppCompatActivity {
                 public void run() {
                     if (layoutLoadingState.getVisibility() != View.VISIBLE) return;
 
-                    // Update Chef Tip with simple fade animation
+                    // aggiorna il consiglio dello chef con una semplice sfumatura
                     tipIndex[0] = (tipIndex[0] + 1) % chefTips.length;
                     if (tvTip != null) {
                         tvTip.animate().alpha(0f).setDuration(250).withEndAction(() -> {
@@ -1513,7 +1515,7 @@ public class HomeActivity extends AppCompatActivity {
                         }).start();
                     }
 
-                    // Update Title with simple fade animation
+                    // aggiorna il titolo con una sfumatura
                     titleIndex[0] = (titleIndex[0] + 1) % loadingTitles.length;
                     if (tvTitle != null) {
                         tvTitle.animate().alpha(0f).setDuration(250).withEndAction(() -> {
@@ -1522,13 +1524,13 @@ public class HomeActivity extends AppCompatActivity {
                         }).start();
                     }
 
-                    // Update Emoji occasionally
+                    // cambia emoji ogni tanto
                     emojiIndex[0] = (emojiIndex[0] + 1) % foodEmojis.length;
                     if (tvEmoji != null) {
                         tvEmoji.setText(foodEmojis[emojiIndex[0]]);
                     }
 
-                    // Update dots indicators
+                    // aggiorna i pallini di caricamento
                     activeDot[0] = (activeDot[0] + 1) % 3;
                     int activeColor = Color.parseColor(ThemeManager.getCurrentTheme(HomeActivity.this).accentColor);
                     int inactiveColor = getResources().getColor(R.color.text_secondary, getTheme());
@@ -1544,8 +1546,8 @@ public class HomeActivity extends AppCompatActivity {
     }
 
     private void dismissLoadingState() {
-        // dismissLoadingState is always called via runOnUiThread from background threads,
-        // so it is already on the main thread when it runs.
+        // dismissloadingstate viene sempre invocato da thread in background con runonuithread
+        // quindi gira sul thread principale
         isLoadingActive = false;
         if (loadingRunnable != null) {
             loadingHandler.removeCallbacks(loadingRunnable);
@@ -1564,7 +1566,7 @@ public class HomeActivity extends AppCompatActivity {
         // Header and search bar are always visible (we keep them during loading too)
         if (layoutHeaderBar != null) layoutHeaderBar.setVisibility(View.VISIBLE);
         if (layoutSearchBar != null) layoutSearchBar.setVisibility(View.VISIBLE);
-        // Restore ingredients UI visibility dynamically
+        // ripristina dinamicamente la visibilità degli ingredienti
         updateIngredientsUI();
     }
 
@@ -1572,9 +1574,9 @@ public class HomeActivity extends AppCompatActivity {
         runOnUiThread(() -> {
             if (show) {
                 isGeneratedViewActive = true;
-                // Keep header and search bar visible — user can still see who they are and search.
-                // Hide only the categories, recents, favorites, standard recipe count, and layout_home_content
-                // so that ONLY the generated recipes grid is displayed below the search area.
+                // tiene visibili l'intestazione e la barra di ricerca
+                // nascondiamo categorie, recenti, preferiti e il contatore standard
+                // così mostriamo solo la griglia delle ricette generate
                 if (layoutHeaderBar != null) layoutHeaderBar.setVisibility(View.VISIBLE);
                 if (layoutSearchBar != null) layoutSearchBar.setVisibility(View.VISIBLE);
                 if (layoutCategories != null) layoutCategories.setVisibility(View.GONE);
@@ -1592,14 +1594,14 @@ public class HomeActivity extends AppCompatActivity {
                 updateRecipesUI();
             } else {
                 isGeneratedViewActive = false;
-                // Restore standard views
+                // ripristina le viste standard
                 if (layoutHeaderBar != null) layoutHeaderBar.setVisibility(View.VISIBLE);
                 if (layoutSearchBar != null) layoutSearchBar.setVisibility(View.VISIBLE);
                 if (layoutCategories != null) layoutCategories.setVisibility(View.VISIBLE);
                 if (layoutGeneratedHeader != null) layoutGeneratedHeader.setVisibility(View.GONE);
                 if (tvRecipeCount != null) tvRecipeCount.setVisibility(View.VISIBLE);
 
-                // Refresh recent and favorites and normal tab recipes
+                // aggiorna le ricette dei recenti, preferiti e della categoria selezionata
                 populateHorizontalSection(containerRecents, sectionRecents, loadRecents());
                 populateHorizontalSection(containerFavorites, sectionFavorites, loadFavorites());
                 switchTab(activeTab);
