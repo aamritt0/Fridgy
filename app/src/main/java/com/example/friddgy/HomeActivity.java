@@ -3,6 +3,7 @@ package com.example.friddgy;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import com.bumptech.glide.Glide;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -88,7 +89,11 @@ public class HomeActivity extends AppCompatActivity {
                     if (savedPath != null) {
                         dialogSelectedAvatarPath = savedPath;
                         if (dialogIvProfile != null) {
-                            dialogIvProfile.setImageURI(android.net.Uri.fromFile(new java.io.File(savedPath)));
+                            Glide.with(this)
+                                    .load(savedPath)
+                                    .placeholder(android.R.drawable.ic_menu_gallery)
+                                    .error(android.R.drawable.ic_menu_gallery)
+                                    .into(dialogIvProfile);
                             dialogIvProfile.setScaleType(ImageView.ScaleType.CENTER_CROP);
                             dialogIvProfile.setImageTintList(null); // Clear camera icon tint
                         }
@@ -98,21 +103,25 @@ public class HomeActivity extends AppCompatActivity {
     );
 
     private String saveCustomAvatar(android.net.Uri uri) {
+        java.io.InputStream in = null;
+        java.io.OutputStream out = null;
         try {
-            java.io.InputStream in = getContentResolver().openInputStream(uri);
+            in = getContentResolver().openInputStream(uri);
+            if (in == null) return null;
             java.io.File file = new java.io.File(getFilesDir(), "profile_picture_custom.jpg");
-            java.io.OutputStream out = new java.io.FileOutputStream(file);
+            out = new java.io.FileOutputStream(file);
             byte[] buf = new byte[1024];
             int len;
             while ((len = in.read(buf)) > 0) {
                 out.write(buf, 0, len);
             }
-            out.close();
-            in.close();
             return file.getAbsolutePath();
         } catch (Exception e) {
             e.printStackTrace();
             return null;
+        } finally {
+            try { if (out != null) out.close(); } catch (Exception ignored) {}
+            try { if (in != null) in.close(); } catch (Exception ignored) {}
         }
     }
 
@@ -954,43 +963,11 @@ public class HomeActivity extends AppCompatActivity {
             imageView.setImageResource(android.R.drawable.ic_menu_gallery);
             return;
         }
-        runOnUiThread(() -> imageView.setImageResource(android.R.drawable.ic_menu_gallery)); // Set default placeholder
-        new Thread(() -> {
-            try {
-                Bitmap bitmap = null;
-                if (urlStr.startsWith("content://") || urlStr.startsWith("file://")) {
-                    android.net.Uri uri = android.net.Uri.parse(urlStr);
-                    InputStream input = getContentResolver().openInputStream(uri);
-                    bitmap = BitmapFactory.decodeStream(input);
-                    if (input != null) input.close();
-                } else if (urlStr.startsWith("http://") || urlStr.startsWith("https://")) {
-                    URL url = new URL(urlStr);
-                    HttpURLConnection connection = (HttpURLConnection) url.openConnection();
-                    connection.setDoInput(true);
-                    connection.connect();
-                    InputStream input = connection.getInputStream();
-                    bitmap = BitmapFactory.decodeStream(input);
-                    if (input != null) input.close();
-                } else {
-                    java.io.File file = new java.io.File(urlStr);
-                    if (file.exists()) {
-                        bitmap = BitmapFactory.decodeFile(file.getAbsolutePath());
-                    }
-                }
-                
-                final Bitmap finalBitmap = bitmap;
-                runOnUiThread(() -> {
-                    if (finalBitmap != null) {
-                        imageView.setImageBitmap(finalBitmap);
-                    } else {
-                        imageView.setImageResource(android.R.drawable.ic_menu_gallery);
-                    }
-                });
-            } catch (Exception e) {
-                e.printStackTrace();
-                runOnUiThread(() -> imageView.setImageResource(android.R.drawable.ic_menu_gallery));
-            }
-        }).start();
+        Glide.with(this)
+                .load(urlStr)
+                .placeholder(android.R.drawable.ic_menu_gallery)
+                .error(android.R.drawable.ic_menu_gallery)
+                .into(imageView);
     }
 
     private static String getIngredientEmoji(String name) {

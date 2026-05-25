@@ -29,6 +29,7 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.io.OutputStream;
+import com.bumptech.glide.Glide;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -43,7 +44,11 @@ public class MainActivity extends AppCompatActivity {
                         selectedImageUriString = savedPath;
                         ImageView ivProfile = findViewById(R.id.setup_iv_profile);
                         if (ivProfile != null) {
-                            ivProfile.setImageURI(Uri.fromFile(new File(savedPath)));
+                            Glide.with(this)
+                                    .load(savedPath)
+                                    .placeholder(android.R.drawable.ic_menu_gallery)
+                                    .error(android.R.drawable.ic_menu_gallery)
+                                    .into(ivProfile);
                             ivProfile.setScaleType(ImageView.ScaleType.CENTER_CROP);
                             ivProfile.setImageTintList(null); // rimuove la tinta dell'icona fotocamera
                         }

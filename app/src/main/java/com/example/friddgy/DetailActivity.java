@@ -2,6 +2,7 @@ package com.example.friddgy;
 
 import android.content.res.ColorStateList;
 import android.content.Context;
+import com.bumptech.glide.Glide;
 import android.content.SharedPreferences;
 import android.graphics.Color;
 import android.os.Bundle;
@@ -197,40 +198,11 @@ public class DetailActivity extends AppCompatActivity {
             imageView.setImageResource(android.R.drawable.ic_menu_gallery);
             return;
         }
-        // gestisce i file locali direttamente sul thread principale
-        if (!urlStr.startsWith("http://") && !urlStr.startsWith("https://")) {
-            java.io.File file = new java.io.File(urlStr);
-            if (file.exists()) {
-                imageView.setImageBitmap(BitmapFactory.decodeFile(file.getAbsolutePath()));
-            } else {
-                imageView.setImageResource(android.R.drawable.ic_menu_gallery);
-            }
-            return;
-        }
-        imageView.setImageResource(android.R.drawable.ic_menu_gallery); // segnaposto
-        new Thread(() -> {
-            HttpURLConnection connection = null;
-            try {
-                URL url = new URL(urlStr);
-                connection = (HttpURLConnection) url.openConnection();
-                connection.setDoInput(true);
-                connection.setConnectTimeout(15000);
-                connection.setReadTimeout(15000);
-                connection.connect();
-                InputStream input = connection.getInputStream();
-                Bitmap bitmap = BitmapFactory.decodeStream(input);
-                input.close();
-                if (!isFinishing() && !isDestroyed() && bitmap != null) {
-                    runOnUiThread(() -> imageView.setImageBitmap(bitmap));
-                }
-            } catch (Exception e) {
-                e.printStackTrace();
-            } finally {
-                if (connection != null) {
-                    connection.disconnect();
-                }
-            }
-        }).start();
+        Glide.with(this)
+                .load(urlStr)
+                .placeholder(android.R.drawable.ic_menu_gallery)
+                .error(android.R.drawable.ic_menu_gallery)
+                .into(imageView);
     }
 
     private void addToRecents(Recipe recipe) {
